@@ -66,7 +66,7 @@ Consulte [a arquitetura](docs/architecture.md) e [o roadmap](docs/roadmap.md) an
 
 - nenhuma credencial no repositório;
 - migrações versionadas;
-- contratos HTTP documentados com OpenAPI;
+- contratos HTTP documentados com OpenAPI e Swagger UI;
 - testes unitários, de integração e de arquitetura;
 - cobertura das regras críticas, sem meta usada como substituto de qualidade;
 - imagens de container sem execução como `root`;
@@ -92,6 +92,8 @@ O desenvolvimento será incremental. Cada fase deverá terminar com código exec
 7. containers e Kubernetes local;
 8. infraestrutura AWS com Terraform;
 9. painel React e demonstração publicada.
+
+O painel React será a demonstração principal do fluxo de negócio. Swagger UI continuará disponível para que recrutadores e avaliadores possam inspecionar e experimentar os contratos do backend sem depender da interface web.
 
 ## Documentação
 

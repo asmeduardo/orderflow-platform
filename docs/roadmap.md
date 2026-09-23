@@ -7,7 +7,7 @@
 - [ ] adicionar PostgreSQL e Flyway;
 - [ ] criar API REST com validação e `ProblemDetail`;
 - [ ] escrever testes unitários e de integração com Testcontainers;
-- [ ] publicar OpenAPI e coleção de exemplos.
+- [ ] publicar OpenAPI, Swagger UI e coleção de exemplos.
 
 ## Fase 2 — segurança e qualidade
 
