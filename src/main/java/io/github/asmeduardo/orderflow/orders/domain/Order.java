@@ -108,6 +108,26 @@ public class Order {
         updatedAt = now;
     }
 
+    /**
+     * Cancels a pending or confirmed order.
+     *
+     * @return {@code false} when the order was already cancelled, so callers can skip side effects
+     */
+    public boolean cancel(Instant now) {
+        switch (status) {
+            case CANCELLED -> {
+                return false;
+            }
+            case REJECTED -> throw new InvalidOrderStateException("Order " + id + " was rejected and cannot be cancelled");
+            case PENDING, CONFIRMED -> {
+                status = OrderStatus.CANCELLED;
+                updatedAt = now;
+                return true;
+            }
+        }
+        throw new IllegalStateException("Unexpected status " + status);
+    }
+
     public Money total() {
         return new Money(totalAmount, currency());
     }

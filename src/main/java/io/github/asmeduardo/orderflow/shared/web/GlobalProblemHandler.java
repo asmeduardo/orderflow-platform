@@ -11,6 +11,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -107,6 +108,16 @@ class GlobalProblemHandler extends ResponseEntityExceptionHandler {
                 "conflict",
                 "Conflicting state",
                 "The request conflicts with the current state of the resource.");
+    }
+
+    @ExceptionHandler
+    ProblemDetail concurrentModification(OptimisticLockingFailureException exception) {
+        log.info("Request lost an optimistic locking race: {}", exception.getMessage());
+        return Problems.of(
+                HttpStatus.CONFLICT,
+                "concurrent-modification",
+                "Concurrent modification",
+                "The resource was changed by another request. Fetch it again and retry if still needed.");
     }
 
     @ExceptionHandler

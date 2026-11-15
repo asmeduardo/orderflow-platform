@@ -57,6 +57,11 @@ public class OrderController {
         return orders.get(id);
     }
 
+    @PostMapping("/{id}/cancel")
+    public OrderView cancel(@PathVariable UUID id) {
+        return orders.cancel(id);
+    }
+
     @GetMapping
     public PageResponse<OrderSummary> list(
             @RequestParam(required = false) OrderStatus status,

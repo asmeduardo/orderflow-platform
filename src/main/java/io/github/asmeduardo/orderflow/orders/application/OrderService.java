@@ -107,6 +107,19 @@ public class OrderService {
         return orders.findWithItemsById(id).map(OrderView::of).orElseThrow(() -> new OrderNotFoundException(id));
     }
 
+    /**
+     * Cancels the order and returns its stock in one transaction. Cancelling an already cancelled
+     * order changes nothing. Two concurrent cancellations are caught by the version column.
+     */
+    @Transactional
+    public OrderView cancel(UUID id) {
+        var order = orders.findWithItemsById(id).orElseThrow(() -> new OrderNotFoundException(id));
+        if (order.cancel(clock.instant())) {
+            stock.release(order.getId());
+        }
+        return OrderView.of(order);
+    }
+
     /** Newest orders first, optionally narrowed by status and channel. */
     @Transactional(readOnly = true)
     public Page<OrderSummary> list(OrderStatus status, String channel, int page, int size) {

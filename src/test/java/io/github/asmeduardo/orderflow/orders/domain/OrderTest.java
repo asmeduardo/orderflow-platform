@@ -86,6 +86,37 @@ class OrderTest {
         assertThatIllegalArgumentException().isThrownBy(() -> pendingOrder().reject(" ", LATER));
     }
 
+    @Test
+    void pendingAndConfirmedOrdersCanBeCancelled() {
+        var pending = pendingOrder();
+        var confirmed = pendingOrder();
+        confirmed.confirm(NOW);
+
+        assertThat(pending.cancel(LATER)).isTrue();
+        assertThat(confirmed.cancel(LATER)).isTrue();
+
+        assertThat(pending.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(confirmed.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(confirmed.getUpdatedAt()).isEqualTo(LATER);
+    }
+
+    @Test
+    void cancellingTwiceChangesNothingTheSecondTime() {
+        var order = pendingOrder();
+        order.cancel(NOW);
+
+        assertThat(order.cancel(LATER)).isFalse();
+        assertThat(order.getUpdatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void rejectedOrderCannotBeCancelled() {
+        var order = pendingOrder();
+        order.reject("No stock", NOW);
+
+        assertThatThrownBy(() -> order.cancel(LATER)).isInstanceOf(InvalidOrderStateException.class);
+    }
+
     private static Order pendingOrder() {
         return Order.place("WEB_STORE", BRL, List.of(new OrderLine("MUG", 1, BigDecimal.TEN)), NOW);
     }
