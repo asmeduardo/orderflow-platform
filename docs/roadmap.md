@@ -2,12 +2,12 @@
 
 ## Fase 1 — fundação
 
-- [ ] criar o monólito modular com Java 21 e Spring Boot;
-- [ ] modelar pedido, item, produto e reserva;
-- [ ] adicionar PostgreSQL e Flyway;
-- [ ] criar API REST com validação e `ProblemDetail`;
-- [ ] escrever testes unitários e de integração com Testcontainers;
-- [ ] publicar OpenAPI, Swagger UI e coleção de exemplos.
+- [x] criar o monólito modular com Java 25 e Spring Boot ([ADR 0002](adr/0002-stack-base.md));
+- [x] modelar pedido, item, produto e reserva;
+- [x] adicionar PostgreSQL e Flyway;
+- [x] criar API REST com validação e `ProblemDetail`;
+- [x] escrever testes unitários e de integração com Testcontainers;
+- [x] publicar OpenAPI, Swagger UI e coleção de exemplos.
 
 ## Fase 2 — segurança e qualidade
 

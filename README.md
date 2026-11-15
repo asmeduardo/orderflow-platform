@@ -2,7 +2,7 @@
 
 Plataforma de pedidos e reserva de estoque para pequenos varejistas que vendem em mais de um canal e precisam evitar venda sem estoque, reservas duplicadas e pedidos presos após falhas de integração.
 
-> **Estado:** planejamento concluído; implementação ainda não iniciada. O roadmap e as decisões arquiteturais serão atualizados à medida que o código for entregue.
+> **Estado:** fase 1 (fundação) entregue: monólito modular com os módulos de pedidos e estoque, PostgreSQL, API REST documentada e testes de unidade e integração. Segurança (fase 2) e eventos (fase 3) são as próximas entregas; o restante do documento indica o que ainda está planejado.
 
 ## Problema
 
@@ -45,22 +45,30 @@ flowchart LR
     NOTIFY -. logs .-> OBS
 ```
 
-Consulte [a arquitetura](docs/architecture.md) e [o roadmap](docs/roadmap.md) antes da implementação.
+O diagrama mostra o destino. Hoje, pedidos e estoque rodam em um único processo, com um schema PostgreSQL por módulo e reserva síncrona na mesma transação; a [arquitetura](docs/architecture.md) descreve o estado atual e o [roadmap](docs/roadmap.md), os próximos passos.
 
-## Stack planejada
+## Stack
 
-- Java 21 e Spring Boot 3;
-- Spring Web, Spring Data JPA, Spring Security e Bean Validation;
-- PostgreSQL e Flyway;
-- Apache Kafka;
-- JUnit 5, Mockito, Testcontainers e WireMock;
-- Docker Compose para o ambiente local;
+Em uso:
+
+- Java 25 (LTS) e Spring Boot 4.1 ([ADR 0002](docs/adr/0002-stack-base.md));
+- Spring MVC, Spring Data JPA/Hibernate e Bean Validation;
+- PostgreSQL 18 e Flyway com migrações SQL versionadas;
+- OpenAPI 3 e Swagger UI (springdoc-openapi);
+- JUnit 6 (Jupiter), Mockito, AssertJ e Testcontainers;
+- Maven (wrapper) e Docker Compose para o ambiente local.
+
+Planejada:
+
+- Spring Security com OAuth 2.0 e JWT (fase 2);
+- GitHub Actions para integração contínua (fase 2);
+- Apache Kafka (fase 3);
+- WireMock para integrações HTTP externas;
 - Kubernetes e Helm para orquestração;
 - Terraform para infraestrutura reproduzível na AWS;
 - Amazon EKS, ECR, RDS e CloudWatch;
 - OpenTelemetry, Prometheus e Grafana;
-- React e TypeScript no painel operacional;
-- GitHub Actions para integração contínua.
+- React e TypeScript no painel operacional.
 
 ## Critérios de qualidade
 
@@ -77,14 +85,34 @@ Consulte [a arquitetura](docs/architecture.md) e [o roadmap](docs/roadmap.md) an
 
 ## Execução local
 
-Os comandos serão publicados junto da primeira entrega executável. Até lá, não há artefato funcional para executar.
+Pré-requisitos: JDK 25 e Docker.
+
+```bash
+cp .env.example .env        # defina POSTGRES_PASSWORD (e POSTGRES_PORT, se a 5432 estiver ocupada)
+docker compose up -d        # PostgreSQL 18
+./mvnw spring-boot:run      # API em http://localhost:8080
+```
+
+A aplicação lê o mesmo `.env` (ignorado pelo Git) que o Docker Compose; as migrações Flyway rodam na inicialização.
+
+- Swagger UI: <http://localhost:8080/swagger-ui/index.html>
+- Contrato OpenAPI: <http://localhost:8080/v3/api-docs>
+- Exemplos de requisições: [`http/orderflow.http`](http/orderflow.http) (IntelliJ HTTP Client ou extensão REST Client do VS Code)
+
+### Testes
+
+```bash
+./mvnw verify
+```
+
+Executa os testes unitários (`*Test`, Surefire) e os de integração (`*IT`, Failsafe). Os testes de integração sobem um PostgreSQL real com Testcontainers e, por isso, exigem o Docker em execução. Entre eles estão os testes de concorrência da reserva de estoque e da chave de idempotência.
 
 ## Roadmap
 
 O desenvolvimento será incremental. Cada fase deverá terminar com código executável, testes e documentação atualizada:
 
-1. domínio de pedidos e estoque em um monólito modular;
-2. persistência PostgreSQL, migrações e API REST;
+1. domínio de pedidos e estoque em um monólito modular (entregue);
+2. persistência PostgreSQL, migrações e API REST (entregue);
 3. autenticação, autorização e auditoria;
 4. extração do processamento assíncrono com Kafka e outbox;
 5. idempotência, retry, DLQ e testes de falha;
@@ -100,6 +128,10 @@ O painel React será a demonstração principal do fluxo de negócio. Swagger UI
 - [Arquitetura](docs/architecture.md)
 - [Roadmap](docs/roadmap.md)
 - [ADR 0001 — evolução incremental da arquitetura](docs/adr/0001-evolucao-incremental.md)
+- [ADR 0002 — Java 25, Spring Boot 4.1 e Maven](docs/adr/0002-stack-base.md)
+- [ADR 0003 — módulos com API pública e schema próprio](docs/adr/0003-monolito-modular-com-schema-por-modulo.md)
+- [ADR 0004 — reserva de estoque concorrente](docs/adr/0004-reserva-de-estoque-concorrente.md)
+- [ADR 0005 — idempotência na criação de pedidos](docs/adr/0005-idempotencia-na-criacao-de-pedidos.md)
 - [Como contribuir](CONTRIBUTING.md)
 - [Política de segurança](SECURITY.md)
 

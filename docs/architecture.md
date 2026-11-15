@@ -12,6 +12,20 @@ O sistema deverá confirmar pedidos sem perder rastreabilidade quando um serviç
 
 Cada contexto possuirá dados próprios. A comunicação assíncrona ocorrerá por eventos versionados no Kafka. Consultas síncronas serão usadas somente quando o resultado imediato fizer parte do contrato HTTP.
 
+## Implementação atual
+
+A fase 1 entrega um monólito modular ([ADR 0003](adr/0003-monolito-modular-com-schema-por-modulo.md)):
+
+- `orders` recebe o pedido, valida o canal, a moeda e os itens e controla os estados `PENDING`, `CONFIRMED`, `REJECTED` e `CANCELLED`;
+- `inventory` mantém produtos, quantidades em estoque e reservas;
+- cada módulo tem um schema PostgreSQL próprio, sem chaves estrangeiras entre eles;
+- `orders` usa apenas a API pública `inventory.api` e reserva o estoque de forma síncrona, na mesma transação que grava o pedido;
+- a reserva é tudo ou nada e segura sob concorrência ([ADR 0004](adr/0004-reserva-de-estoque-concorrente.md));
+- a criação de pedidos é idempotente por `Idempotency-Key` ([ADR 0005](adr/0005-idempotencia-na-criacao-de-pedidos.md));
+- valores monetários usam `BigDecimal` na escala da moeda, e datas são instantes UTC com precisão de microssegundos.
+
+A comunicação por eventos e a extração do estoque estão previstas para a fase 3.
+
 ## Decisões de consistência
 
 - O pedido será persistido na mesma transação que registra o evento na tabela de outbox.
