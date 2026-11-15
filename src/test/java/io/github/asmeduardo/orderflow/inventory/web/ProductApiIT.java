@@ -2,6 +2,7 @@ package io.github.asmeduardo.orderflow.inventory.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.jayway.jsonpath.JsonPath;
 import io.github.asmeduardo.orderflow.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,23 @@ class ProductApiIT {
                         {"sku": "MUG-BLUE-01", "name": "Blue mug",
                          "onHandQuantity": 12, "reservedQuantity": 0, "availableQuantity": 12}
                         """);
+    }
+
+    @Test
+    void creationResponseShowsTheTimestampsThatWereStored() throws Exception {
+        for (var sku : new String[] {"TIME-A", "TIME-B", "TIME-C"}) {
+            var created = mvc.post()
+                    .uri("/api/v1/products")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"sku\": \"%s\", \"name\": \"Clock check\", \"onHandQuantity\": 1}".formatted(sku))
+                    .exchange();
+            String createdAt = JsonPath.read(created.getResponse().getContentAsString(), "$.createdAt");
+
+            assertThat(mvc.get().uri("/api/v1/products/" + sku))
+                    .bodyJson()
+                    .extractingPath("$.createdAt")
+                    .isEqualTo(createdAt);
+        }
     }
 
     @Test
