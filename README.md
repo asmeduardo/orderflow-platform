@@ -90,7 +90,7 @@ Pré-requisitos: JDK 25 e Docker.
 ```bash
 cp .env.example .env        # defina POSTGRES_PASSWORD (e POSTGRES_PORT, se a 5432 estiver ocupada)
 docker compose up -d        # PostgreSQL 18
-./mvnw spring-boot:run      # API em http://localhost:8080
+./mvnw -pl orderflow-app spring-boot:run   # API em http://localhost:8080
 ```
 
 A aplicação lê o mesmo `.env` (ignorado pelo Git) que o Docker Compose; as migrações Flyway rodam na inicialização.
