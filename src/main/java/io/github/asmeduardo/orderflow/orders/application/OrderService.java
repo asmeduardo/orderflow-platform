@@ -9,6 +9,7 @@ import io.github.asmeduardo.orderflow.orders.domain.IdempotencyKeyRepository;
 import io.github.asmeduardo.orderflow.orders.domain.InvalidOrderException;
 import io.github.asmeduardo.orderflow.orders.domain.Order;
 import io.github.asmeduardo.orderflow.orders.domain.OrderRepository;
+import io.github.asmeduardo.orderflow.orders.domain.OrderStatus;
 import java.time.Clock;
 import java.util.Currency;
 import java.util.List;
@@ -16,6 +17,10 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionOperations;
@@ -100,6 +105,14 @@ public class OrderService {
     @Transactional(readOnly = true)
     public OrderView get(UUID id) {
         return orders.findWithItemsById(id).map(OrderView::of).orElseThrow(() -> new OrderNotFoundException(id));
+    }
+
+    /** Newest orders first, optionally narrowed by status and channel. */
+    @Transactional(readOnly = true)
+    public Page<OrderSummary> list(OrderStatus status, String channel, int page, int size) {
+        var newestFirst = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
+        var filter = Specification.allOf(OrderRepository.withStatus(status), OrderRepository.fromChannel(channel));
+        return orders.findAll(filter, PageRequest.of(page, size, newestFirst)).map(OrderSummary::of);
     }
 
     private static Currency currencyOf(String code) {

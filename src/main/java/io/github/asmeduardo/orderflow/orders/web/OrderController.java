@@ -1,8 +1,13 @@
 package io.github.asmeduardo.orderflow.orders.web;
 
 import io.github.asmeduardo.orderflow.orders.application.OrderService;
+import io.github.asmeduardo.orderflow.orders.application.OrderSummary;
 import io.github.asmeduardo.orderflow.orders.application.OrderView;
+import io.github.asmeduardo.orderflow.orders.domain.OrderStatus;
+import io.github.asmeduardo.orderflow.shared.web.PageResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import java.net.URI;
 import java.util.UUID;
@@ -13,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -49,5 +55,14 @@ public class OrderController {
     @GetMapping("/{id}")
     public OrderView get(@PathVariable UUID id) {
         return orders.get(id);
+    }
+
+    @GetMapping
+    public PageResponse<OrderSummary> list(
+            @RequestParam(required = false) OrderStatus status,
+            @RequestParam(required = false) String channel,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+        return PageResponse.of(orders.list(status, channel, page, size));
     }
 }
