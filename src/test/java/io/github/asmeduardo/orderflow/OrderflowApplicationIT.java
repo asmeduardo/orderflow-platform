@@ -1,11 +1,24 @@
 package io.github.asmeduardo.orderflow;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
+import io.github.asmeduardo.orderflow.support.IntegrationTest;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+@IntegrationTest
 class OrderflowApplicationIT {
 
+    @Autowired
+    JdbcTemplate jdbc;
+
     @Test
-    void contextLoads() {}
+    void migrationsCreateOneSchemaPerModule() {
+        var schemas = jdbc.queryForList(
+                "select schema_name from information_schema.schemata where schema_name in ('orders', 'inventory')",
+                String.class);
+
+        assertThat(schemas).containsExactlyInAnyOrder("orders", "inventory");
+    }
 }

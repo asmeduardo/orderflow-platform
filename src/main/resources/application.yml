@@ -1,3 +1,16 @@
 spring:
   application:
     name: orderflow
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:orderflow}
+    username: ${POSTGRES_USER:orderflow}
+    password: ${POSTGRES_PASSWORD:}
+  flyway:
+    # Each module owns a schema; no table may reference another module's schema.
+    schemas: orders,inventory
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
