@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.asmeduardo.orderflow.inventory.application.ProductService;
 import io.github.asmeduardo.orderflow.support.IntegrationTest;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -112,6 +113,7 @@ class OrderApiIT {
     private MvcTestResult place(String body) {
         return mvc.post()
                 .uri("/api/v1/orders")
+                .header("Idempotency-Key", UUID.randomUUID().toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body)
                 .exchange();

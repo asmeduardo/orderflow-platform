@@ -5,7 +5,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
@@ -20,16 +19,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import org.hibernate.annotations.UuidGenerator;
 
 /** A sales order received from one channel. Its status records what is known about its stock. */
 @Entity(name = "SalesOrder")
 @Table(name = "sales_order", schema = "orders")
 public class Order {
 
+    /** Assigned on creation so that the order can be referenced before it is flushed. */
     @Id
-    @GeneratedValue
-    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
     private UUID id;
 
     @Column(nullable = false, updatable = false, length = 32)
@@ -48,8 +45,9 @@ public class Order {
     @Column(name = "rejection_reason", length = 500)
     private String rejectionReason;
 
+    /** Null until persisted, which is how Spring Data tells a new order from a detached one. */
     @Version
-    private long version;
+    private Long version;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -64,6 +62,7 @@ public class Order {
     protected Order() {}
 
     private Order(String channel, Currency currency, Instant now) {
+        this.id = UUID.randomUUID();
         this.channel = Objects.requireNonNull(channel, "channel");
         this.currency = currency.getCurrencyCode();
         this.status = OrderStatus.PENDING;

@@ -1,10 +1,13 @@
 package io.github.asmeduardo.orderflow.shared.web;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.TypeMismatchException;
+import org.springframework.core.MethodParameter;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -15,8 +18,13 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.validation.method.ParameterErrors;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
@@ -48,12 +56,36 @@ class GlobalProblemHandler extends ResponseEntityExceptionHandler {
             HttpHeaders headers,
             HttpStatusCode status,
             WebRequest request) {
-        var errors = exception.getParameterValidationResults().stream()
-                .flatMap(result -> result.getResolvableErrors().stream()
-                        .map(error -> fieldError(
-                                result.getMethodParameter().getParameterName(), error.getDefaultMessage())))
-                .toList();
+        // Once a handler has a constrained parameter, Spring validates every parameter here,
+        // including @Valid request bodies, whose errors then arrive as ParameterErrors.
+        var errors = new ArrayList<Map<String, String>>();
+        for (var result : exception.getParameterValidationResults()) {
+            if (result instanceof ParameterErrors bodyErrors) {
+                bodyErrors.getFieldErrors().forEach(error -> errors.add(fieldError(error.getField(), error.getDefaultMessage())));
+            } else {
+                result.getResolvableErrors()
+                        .forEach(error -> errors.add(fieldError(nameOf(result.getMethodParameter()), error.getDefaultMessage())));
+            }
+        }
+        errors.sort(Comparator.comparing(error -> error.get("field")));
         return ResponseEntity.badRequest().body(invalidRequest(errors));
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleServletRequestBindingException(
+            ServletRequestBindingException exception, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        if (exception instanceof MissingRequestHeaderException missing) {
+            return ResponseEntity.badRequest()
+                    .body(invalidRequest(List.of(fieldError(missing.getHeaderName(), "is required"))));
+        }
+        return ResponseEntity.badRequest().body(invalidRequest(List.of()));
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleTypeMismatch(
+            TypeMismatchException exception, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        var field = exception.getPropertyName() == null ? "request" : exception.getPropertyName();
+        return ResponseEntity.badRequest().body(invalidRequest(List.of(fieldError(field, "has an invalid format"))));
     }
 
     @Override
@@ -89,6 +121,19 @@ class GlobalProblemHandler extends ResponseEntityExceptionHandler {
                 Problems.of(HttpStatus.BAD_REQUEST, "invalid-request", "Invalid request", "One or more fields are invalid.");
         problem.setProperty("errors", errors);
         return problem;
+    }
+
+    /** Reports headers and query parameters by the name the client sent, not the Java name. */
+    private static String nameOf(MethodParameter parameter) {
+        var header = parameter.getParameterAnnotation(RequestHeader.class);
+        if (header != null && !header.name().isEmpty()) {
+            return header.name();
+        }
+        var param = parameter.getParameterAnnotation(RequestParam.class);
+        if (param != null && !param.name().isEmpty()) {
+            return param.name();
+        }
+        return parameter.getParameterName();
     }
 
     private static Map<String, String> fieldError(String field, String message) {

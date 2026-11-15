@@ -1,5 +1,6 @@
 package io.github.asmeduardo.orderflow.orders.web;
 
+import io.github.asmeduardo.orderflow.orders.application.IdempotencyKeyReusedException;
 import io.github.asmeduardo.orderflow.orders.application.OrderNotFoundException;
 import io.github.asmeduardo.orderflow.orders.domain.InvalidOrderException;
 import io.github.asmeduardo.orderflow.orders.domain.InvalidOrderStateException;
@@ -23,6 +24,15 @@ class OrdersProblemHandler {
     @ExceptionHandler
     ProblemDetail invalidOrder(InvalidOrderException exception) {
         return Problems.of(HttpStatus.BAD_REQUEST, "invalid-order", "Invalid order", exception.getMessage());
+    }
+
+    @ExceptionHandler
+    ProblemDetail idempotencyKeyReused(IdempotencyKeyReusedException exception) {
+        return Problems.of(
+                HttpStatus.UNPROCESSABLE_CONTENT,
+                "idempotency-key-reused",
+                "Idempotency key reused",
+                exception.getMessage());
     }
 
     @ExceptionHandler
