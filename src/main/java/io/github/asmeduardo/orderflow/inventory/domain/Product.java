@@ -57,8 +57,42 @@ public class Product {
         this.updatedAt = now;
     }
 
+    public boolean canReserve(int quantity) {
+        return quantity <= availableQuantity();
+    }
+
+    public void reserve(int quantity, Instant now) {
+        requirePositive(quantity);
+        if (!canReserve(quantity)) {
+            throw new IllegalStateException(
+                    "Cannot reserve " + quantity + " of " + sku + "; only " + availableQuantity() + " available");
+        }
+        reservedQuantity += quantity;
+        updatedAt = now;
+    }
+
+    public void release(int quantity, Instant now) {
+        requirePositive(quantity);
+        if (quantity > reservedQuantity) {
+            throw new IllegalStateException(
+                    "Cannot release " + quantity + " of " + sku + "; only " + reservedQuantity + " reserved");
+        }
+        reservedQuantity -= quantity;
+        updatedAt = now;
+    }
+
+    private static void requirePositive(int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be positive");
+        }
+    }
+
     public int availableQuantity() {
         return onHandQuantity - reservedQuantity;
+    }
+
+    public Long getId() {
+        return id;
     }
 
     public String getSku() {
