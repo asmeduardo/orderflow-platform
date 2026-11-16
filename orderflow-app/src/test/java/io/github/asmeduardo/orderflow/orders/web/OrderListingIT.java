@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.asmeduardo.orderflow.inventory.application.ProductService;
 import io.github.asmeduardo.orderflow.support.IntegrationTest;
+import java.time.Duration;
 import java.util.UUID;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,13 @@ class OrderListingIT {
         place("LISTING_TEST", "LST-ITEM", 5);
         place("LISTING_TEST", "LST-ITEM", 1);
         place("OTHER_CHANNEL", "LST-ITEM", 9);
+        // The inventory decides each order asynchronously; list once every decision has arrived.
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(30))
+                .untilAsserted(() -> assertThat(mvc.get().uri("/api/v1/orders?channel=LISTING_TEST&status=PENDING"))
+                        .bodyJson()
+                        .extractingPath("$.totalElements")
+                        .isEqualTo(0));
 
         assertThat(mvc.get().uri("/api/v1/orders?channel=LISTING_TEST&size=2"))
                 .hasStatusOk()

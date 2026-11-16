@@ -6,7 +6,9 @@ import com.jayway.jsonpath.JsonPath;
 import io.github.asmeduardo.orderflow.inventory.application.ProductService;
 import io.github.asmeduardo.orderflow.support.IntegrationTest;
 import java.io.UnsupportedEncodingException;
+import java.time.Duration;
 import java.util.UUID;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,6 +18,8 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 @IntegrationTest
 class OrderCancellationIT {
 
+    private static final Duration EVENTUALLY = Duration.ofSeconds(30);
+
     @Autowired
     MockMvcTester mvc;
 
@@ -23,7 +27,7 @@ class OrderCancellationIT {
     ProductService products;
 
     @Test
-    void cancellingAConfirmedOrderReleasesItsStock() throws Exception {
+    void pendingOrderCanBeCancelledBeforeInventoryAnswers() throws Exception {
         products.register("CNL-A", "Item", 4);
         var orderId = place("CNL-A", 3);
 
@@ -34,8 +38,12 @@ class OrderCancellationIT {
                 .bodyJson()
                 .extractingPath("$.status")
                 .isEqualTo("CANCELLED");
-        assertThat(products.get("CNL-A").reservedQuantity()).isZero();
-        assertThat(products.get("CNL-A").availableQuantity()).isEqualTo(4);
+        // Whatever the inventory reserved for the order is released by the OrderCancelled event.
+        Awaitility.await().atMost(EVENTUALLY).until(() -> products.get("CNL-A").availableQuantity() == 4);
+        assertThat(mvc.get().uri("/api/v1/orders/{id}", orderId))
+                .bodyJson()
+                .extractingPath("$.status")
+                .isEqualTo("CANCELLED");
     }
 
     @Test
@@ -49,13 +57,14 @@ class OrderCancellationIT {
                 .bodyJson()
                 .extractingPath("$.status")
                 .isEqualTo("CANCELLED");
-        assertThat(products.get("CNL-B").availableQuantity()).isEqualTo(4);
+        Awaitility.await().atMost(EVENTUALLY).until(() -> products.get("CNL-B").availableQuantity() == 4);
     }
 
     @Test
     void rejectedOrderCannotBeCancelled() throws Exception {
         products.register("CNL-C", "Item", 1);
         var orderId = place("CNL-C", 2);
+        Awaitility.await().atMost(EVENTUALLY).until(() -> "REJECTED".equals(statusOf(orderId)));
 
         assertThat(mvc.post().uri("/api/v1/orders/{id}/cancel", orderId))
                 .hasStatus(HttpStatus.CONFLICT)
@@ -68,6 +77,16 @@ class OrderCancellationIT {
     void cancellingAnUnknownOrderIsNotFound() {
         assertThat(mvc.post().uri("/api/v1/orders/{id}/cancel", UUID.randomUUID()))
                 .hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    private String statusOf(String orderId) throws UnsupportedEncodingException {
+        return JsonPath.read(
+                mvc.get()
+                        .uri("/api/v1/orders/{id}", orderId)
+                        .exchange()
+                        .getResponse()
+                        .getContentAsString(),
+                "$.status");
     }
 
     private String place(String sku, int quantity) throws UnsupportedEncodingException {

@@ -1,4 +1,4 @@
-package io.github.asmeduardo.orderflow.inventory.api;
+package io.github.asmeduardo.orderflow.inventory.application;
 
 import java.util.List;
 

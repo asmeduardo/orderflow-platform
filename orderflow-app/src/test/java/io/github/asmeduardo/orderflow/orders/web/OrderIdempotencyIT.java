@@ -8,12 +8,14 @@ import io.github.asmeduardo.orderflow.inventory.application.ProductService;
 import io.github.asmeduardo.orderflow.support.IntegrationTest;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -49,7 +51,7 @@ class OrderIdempotencyIT {
         assertThat(idOf(retry)).isEqualTo(idOf(first));
         assertThat(retry.getResponse().getHeader("Location"))
                 .isEqualTo(first.getResponse().getHeader("Location"));
-        assertThat(products.get("IDEM-A").reservedQuantity()).isEqualTo(3);
+        assertReservedEventually("IDEM-A", 3);
     }
 
     @Test
@@ -66,7 +68,7 @@ class OrderIdempotencyIT {
         assertThat(fromMarketplace.getResponse().getHeader("Idempotent-Replayed"))
                 .isNull();
         assertThat(idOf(fromMarketplace)).isNotEqualTo(idOf(fromWebStore));
-        assertThat(products.get("IDEM-TENANT").reservedQuantity()).isEqualTo(2);
+        assertReservedEventually("IDEM-TENANT", 2);
     }
 
     @Test
@@ -82,7 +84,7 @@ class OrderIdempotencyIT {
                 .bodyJson()
                 .extractingPath("$.type")
                 .isEqualTo("urn:orderflow:problem:idempotency-key-reused");
-        assertThat(products.get("IDEM-B").reservedQuantity()).isEqualTo(1);
+        assertReservedEventually("IDEM-B", 1);
     }
 
     @Test
@@ -130,10 +132,21 @@ class OrderIdempotencyIT {
         }
 
         assertThat(ids).containsOnly(ids.getFirst());
-        assertThat(products.get("IDEM-RACE").reservedQuantity()).isEqualTo(2);
+        assertReservedEventually("IDEM-RACE", 2);
         assertThat(jdbc.queryForObject(
                         "select count(*) from orders.sales_order_item where sku = 'IDEM-RACE'", Integer.class))
                 .isEqualTo(1);
+    }
+
+    /** Reservation is asynchronous; the quantity must reach the value and stay there. */
+    private void assertReservedEventually(String sku, int quantity) {
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(30))
+                .until(() -> products.get(sku).reservedQuantity() == quantity);
+        Awaitility.await()
+                .during(Duration.ofSeconds(2))
+                .atMost(Duration.ofSeconds(5))
+                .until(() -> products.get(sku).reservedQuantity() == quantity);
     }
 
     private MvcTestResult place(String key, String body) {

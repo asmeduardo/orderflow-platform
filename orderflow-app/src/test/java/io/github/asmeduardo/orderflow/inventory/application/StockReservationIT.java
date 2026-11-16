@@ -2,12 +2,8 @@ package io.github.asmeduardo.orderflow.inventory.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.asmeduardo.orderflow.inventory.api.ReservationOutcome;
-import io.github.asmeduardo.orderflow.inventory.api.ReservationOutcome.Rejected;
-import io.github.asmeduardo.orderflow.inventory.api.ReservationOutcome.Reserved;
-import io.github.asmeduardo.orderflow.inventory.api.Shortage;
-import io.github.asmeduardo.orderflow.inventory.api.StockLine;
-import io.github.asmeduardo.orderflow.inventory.api.StockReservations;
+import io.github.asmeduardo.orderflow.inventory.application.ReservationOutcome.Rejected;
+import io.github.asmeduardo.orderflow.inventory.application.ReservationOutcome.Reserved;
 import io.github.asmeduardo.orderflow.support.IntegrationTest;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 class StockReservationIT {
 
     @Autowired
-    StockReservations reservations;
+    StockReservationService reservations;
 
     @Autowired
     ProductService products;

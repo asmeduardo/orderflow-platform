@@ -3,14 +3,10 @@ package io.github.asmeduardo.orderflow.orders.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import io.github.asmeduardo.orderflow.inventory.api.ReservationOutcome;
-import io.github.asmeduardo.orderflow.inventory.api.StockReservations;
 import io.github.asmeduardo.orderflow.orders.domain.IdempotencyKey;
 import io.github.asmeduardo.orderflow.orders.domain.IdempotencyKeyRepository;
 import io.github.asmeduardo.orderflow.orders.domain.Order;
@@ -48,23 +44,15 @@ class OrderServiceTest {
     IdempotencyKeyRepository keys;
 
     @Mock
-    StockReservations stock;
-
-    @Mock
     OrderEvents events;
 
     private OrderService service() {
         return new OrderService(
-                orders,
-                keys,
-                stock,
-                events,
-                TransactionOperations.withoutTransaction(),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                orders, keys, events, TransactionOperations.withoutTransaction(), Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
-    void replaysTheOriginalOrderWithoutReservingStockAgain() {
+    void replaysTheOriginalOrderWithoutRecordingItAgain() {
         var existing = confirmedOrder();
         when(keys.findById(KEY))
                 .thenReturn(Optional.of(
@@ -75,8 +63,8 @@ class OrderServiceTest {
 
         assertThat(result.replayed()).isTrue();
         assertThat(result.order().status()).isEqualTo(OrderStatus.CONFIRMED);
-        verifyNoInteractions(stock);
         verify(orders, never()).save(any());
+        verify(events, never()).placed(any());
     }
 
     @Test
@@ -85,7 +73,7 @@ class OrderServiceTest {
                 .thenReturn(Optional.of(new IdempotencyKey(KEY, "f".repeat(64), UUID.randomUUID(), NOW)));
 
         assertThatThrownBy(() -> service().place(KEY, COMMAND)).isInstanceOf(IdempotencyKeyReusedException.class);
-        verifyNoInteractions(stock);
+        verify(orders, never()).save(any());
     }
 
     @Test
@@ -104,20 +92,20 @@ class OrderServiceTest {
 
         assertThat(result.replayed()).isTrue();
         assertThat(result.order().id()).isEqualTo(winner.getId());
-        verify(stock, never()).reserve(any(), anyList());
+        verify(events, never()).placed(any());
     }
 
     @Test
-    void placesANewOrderWhenTheKeyIsUnknown() {
+    void placesANewPendingOrderAndRecordsItsEventWhenTheKeyIsUnknown() {
         when(keys.findById(KEY)).thenReturn(Optional.empty());
         when(orders.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(stock.reserve(any(), anyList())).thenReturn(new ReservationOutcome.Reserved());
 
         var result = service().place(KEY, COMMAND);
 
         assertThat(result.replayed()).isFalse();
-        assertThat(result.order().status()).isEqualTo(OrderStatus.CONFIRMED);
+        assertThat(result.order().status()).isEqualTo(OrderStatus.PENDING);
         verify(keys).saveAndFlush(any(IdempotencyKey.class));
+        verify(events).placed(any(Order.class));
     }
 
     private static Order confirmedOrder() {

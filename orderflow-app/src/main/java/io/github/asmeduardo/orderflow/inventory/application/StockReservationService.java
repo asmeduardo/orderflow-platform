@@ -3,10 +3,6 @@ package io.github.asmeduardo.orderflow.inventory.application;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
-import io.github.asmeduardo.orderflow.inventory.api.ReservationOutcome;
-import io.github.asmeduardo.orderflow.inventory.api.Shortage;
-import io.github.asmeduardo.orderflow.inventory.api.StockLine;
-import io.github.asmeduardo.orderflow.inventory.api.StockReservations;
 import io.github.asmeduardo.orderflow.inventory.domain.Product;
 import io.github.asmeduardo.orderflow.inventory.domain.ProductRepository;
 import io.github.asmeduardo.orderflow.inventory.domain.StockReservation;
@@ -28,19 +24,22 @@ import org.springframework.transaction.annotation.Transactional;
  * last line of defence should any other code path ever skip the lock.
  */
 @Service
-class StockReservationService implements StockReservations {
+public class StockReservationService {
 
     private final ProductRepository products;
     private final StockReservationRepository reservations;
     private final Clock clock;
 
-    StockReservationService(ProductRepository products, StockReservationRepository reservations, Clock clock) {
+    public StockReservationService(ProductRepository products, StockReservationRepository reservations, Clock clock) {
         this.products = products;
         this.reservations = reservations;
         this.clock = clock;
     }
 
-    @Override
+    /**
+     * Reserves all lines or none. Calling it again for an order that already holds a reservation
+     * returns {@link ReservationOutcome.Reserved} without reserving a second time.
+     */
     @Transactional
     public ReservationOutcome reserve(UUID orderId, List<StockLine> lines) {
         var requested = quantitiesBySku(lines);
@@ -62,7 +61,7 @@ class StockReservationService implements StockReservations {
         return new ReservationOutcome.Reserved();
     }
 
-    @Override
+    /** Returns the stock held by the order. Releasing an order without reservations does nothing. */
     @Transactional
     public void release(UUID orderId) {
         var active = reservations.findByOrderIdAndStatus(orderId, StockReservation.Status.RESERVED);

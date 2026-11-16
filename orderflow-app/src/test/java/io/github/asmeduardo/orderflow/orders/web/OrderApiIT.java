@@ -2,9 +2,12 @@ package io.github.asmeduardo.orderflow.orders.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.jayway.jsonpath.JsonPath;
 import io.github.asmeduardo.orderflow.inventory.application.ProductService;
 import io.github.asmeduardo.orderflow.support.IntegrationTest;
+import java.time.Duration;
 import java.util.UUID;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,7 +25,7 @@ class OrderApiIT {
     ProductService products;
 
     @Test
-    void placedOrderReservesStockAndIsConfirmed() {
+    void placedOrderIsRecordedAsPendingWithExactTotals() {
         products.register("ORD-MUG", "Mug", 5);
 
         var placed = place("""
@@ -31,22 +34,20 @@ class OrderApiIT {
                 """);
 
         assertThat(placed).hasStatus(HttpStatus.CREATED).bodyJson().isLenientlyEqualTo("""
-                        {"status": "CONFIRMED", "channel": "WEB_STORE", "currency": "BRL",
+                        {"status": "PENDING", "channel": "WEB_STORE", "currency": "BRL",
                          "items": [{"sku": "ORD-MUG", "quantity": 2, "unitPrice": 59.90, "lineTotal": 119.80}],
                          "totalAmount": 119.80}
                         """);
         assertThat(placed).headers().containsHeader("Location");
-        assertThat(products.get("ORD-MUG").reservedQuantity()).isEqualTo(2);
-
         assertThat(mvc.get().uri(placed.getResponse().getHeader("Location")))
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.status")
-                .isEqualTo("CONFIRMED");
+                .extractingPath("$.totalAmount")
+                .isEqualTo(119.80);
     }
 
     @Test
-    void orderWithoutEnoughStockIsRejectedAndReservesNothing() {
+    void orderWithOneShortLineIsRejectedAndReservesNothing() throws Exception {
         products.register("ORD-LAMP", "Lamp", 1);
         products.register("ORD-BULB", "Bulb", 10);
 
@@ -56,12 +57,13 @@ class OrderApiIT {
                            {"sku": "ORD-LAMP", "quantity": 2, "unitPrice": 120.00}]}
                 """);
 
-        assertThat(placed)
-                .hasStatus(HttpStatus.CREATED)
-                .bodyJson()
-                .extractingPath("$.status")
-                .isEqualTo("REJECTED");
-        assertThat(placed)
+        var location = placed.getResponse().getHeader("Location");
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(30))
+                .until(() -> "REJECTED"
+                        .equals(JsonPath.read(
+                                mvc.get().uri(location).exchange().getResponse().getContentAsString(), "$.status")));
+        assertThat(mvc.get().uri(location))
                 .bodyJson()
                 .extractingPath("$.rejectionReason")
                 .asString()

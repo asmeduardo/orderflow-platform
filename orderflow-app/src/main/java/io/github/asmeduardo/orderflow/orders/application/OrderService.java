@@ -1,9 +1,5 @@
 package io.github.asmeduardo.orderflow.orders.application;
 
-import io.github.asmeduardo.orderflow.inventory.api.ReservationOutcome;
-import io.github.asmeduardo.orderflow.inventory.api.Shortage;
-import io.github.asmeduardo.orderflow.inventory.api.StockLine;
-import io.github.asmeduardo.orderflow.inventory.api.StockReservations;
 import io.github.asmeduardo.orderflow.orders.domain.IdempotencyKey;
 import io.github.asmeduardo.orderflow.orders.domain.IdempotencyKeyRepository;
 import io.github.asmeduardo.orderflow.orders.domain.InvalidOrderException;
@@ -12,10 +8,8 @@ import io.github.asmeduardo.orderflow.orders.domain.OrderRepository;
 import io.github.asmeduardo.orderflow.orders.domain.OrderStatus;
 import java.time.Clock;
 import java.util.Currency;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,11 +22,8 @@ import org.springframework.transaction.support.TransactionOperations;
 @Service
 public class OrderService {
 
-    private static final int MAX_REASON_LENGTH = 500;
-
     private final OrderRepository orders;
     private final IdempotencyKeyRepository keys;
-    private final StockReservations stock;
     private final OrderEvents events;
     private final TransactionOperations transactions;
     private final Clock clock;
@@ -40,13 +31,11 @@ public class OrderService {
     public OrderService(
             OrderRepository orders,
             IdempotencyKeyRepository keys,
-            StockReservations stock,
             OrderEvents events,
             TransactionOperations transactions,
             Clock clock) {
         this.orders = orders;
         this.keys = keys;
-        this.stock = stock;
         this.events = events;
         this.transactions = transactions;
         this.clock = clock;
@@ -86,23 +75,15 @@ public class OrderService {
     }
 
     /**
-     * Records the order and reserves its stock in the same local transaction. The idempotency key
-     * is flushed before stock is touched, so a concurrent retry blocks on its primary key instead of
-     * reserving stock it would have to give back. The order is confirmed when every line is reserved
-     * and rejected, with the shortages as reason, otherwise.
+     * Records the order, its idempotency key and the OrderPlaced event in one local transaction. The
+     * key is flushed first, so a concurrent retry blocks on its primary key and then replays this
+     * order. The order stays pending until the inventory reports the outcome of the reservation.
      */
     private OrderView placeNew(IdempotencyKey.Id idempotencyKey, String fingerprint, PlaceOrderCommand command) {
         var now = clock.instant();
         var order = orders.save(Order.place(command.channel(), currencyOf(command.currency()), command.lines(), now));
         keys.saveAndFlush(new IdempotencyKey(idempotencyKey, fingerprint, order.getId(), now));
         events.placed(order);
-        var lines = order.getItems().stream()
-                .map(item -> new StockLine(item.getSku(), item.getQuantity()))
-                .toList();
-        switch (stock.reserve(order.getId(), lines)) {
-            case ReservationOutcome.Reserved _ -> order.confirm(clock.instant());
-            case ReservationOutcome.Rejected rejected -> order.reject(describe(rejected.shortages()), clock.instant());
-        }
         return OrderView.of(order);
     }
 
@@ -112,14 +93,14 @@ public class OrderService {
     }
 
     /**
-     * Cancels the order and returns its stock in one transaction. Cancelling an already cancelled
-     * order changes nothing. Two concurrent cancellations are caught by the version column.
+     * Cancels the order and records the OrderCancelled event, which makes the inventory release the
+     * stock. Cancelling an already cancelled order changes nothing. Two concurrent cancellations are
+     * caught by the version column.
      */
     @Transactional
     public OrderView cancel(UUID id) {
         var order = orders.findWithItemsById(id).orElseThrow(() -> new OrderNotFoundException(id));
         if (order.cancel(clock.instant())) {
-            stock.release(order.getId());
             events.cancelled(order);
         }
         return OrderView.of(order);
@@ -139,17 +120,5 @@ public class OrderService {
         } catch (IllegalArgumentException e) {
             throw new InvalidOrderException("Unknown currency " + code);
         }
-    }
-
-    private static String describe(List<Shortage> shortages) {
-        var reason = shortages.stream()
-                .map(shortage -> switch (shortage.reason()) {
-                    case UNKNOWN_PRODUCT -> "unknown product " + shortage.sku();
-                    case INSUFFICIENT_STOCK ->
-                        "insufficient stock for %s (requested %d, available %d)"
-                                .formatted(shortage.sku(), shortage.requested(), shortage.available());
-                })
-                .collect(Collectors.joining("; "));
-        return reason.length() <= MAX_REASON_LENGTH ? reason : reason.substring(0, MAX_REASON_LENGTH - 3) + "...";
     }
 }

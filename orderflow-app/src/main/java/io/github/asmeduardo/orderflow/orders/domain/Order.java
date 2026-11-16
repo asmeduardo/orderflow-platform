@@ -126,6 +126,10 @@ public class Order {
         };
     }
 
+    public boolean isPending() {
+        return status == OrderStatus.PENDING;
+    }
+
     public Money total() {
         return new Money(totalAmount, currency());
     }
