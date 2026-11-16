@@ -6,11 +6,12 @@
 @baseUrl = http://localhost:8080
 @inventoryUrl = http://localhost:8081
 @authUrl = http://localhost:9000
-# Client secrets: the values you chose in .env. Never commit real values.
-@operatorSecret = change-me
-@readerSecret = change-me
-# Paste the access_token returned by the token requests below.
-@token = paste-an-access-token-here
+# Fill in locally and do not commit: the client secrets you chose in .env, the access_token
+# returned by one of the token requests below and the id of an order you placed.
+@operatorSecret =
+@readerSecret =
+@token =
+@orderId =
 # Use a fresh value for every new order attempt; repeat it only to retry the same order.
 @idempotencyKey = 0f8b6c52-3f0e-4a8e-9d43-6a1e2b7c9d10
 
@@ -131,10 +132,10 @@ Idempotency-Key: 1b4c7e2a-9d3f-4a6b-8c5e-0f2d1a3b4c59
 GET {{baseUrl}}/api/v1/orders?status=CONFIRMED&page=0&size=20
 Authorization: Bearer {{token}}
 
-### Get one order (replace the id with one returned above)
-GET {{baseUrl}}/api/v1/orders/00000000-0000-0000-0000-000000000000
+### Get one order and see whether the inventory confirmed or rejected it
+GET {{baseUrl}}/api/v1/orders/{{orderId}}
 Authorization: Bearer {{token}}
 
-### Cancel an order and release its stock (replace the id)
-POST {{baseUrl}}/api/v1/orders/00000000-0000-0000-0000-000000000000/cancel
+### Cancel an order; the inventory releases its stock when it receives OrderCancelled
+POST {{baseUrl}}/api/v1/orders/{{orderId}}/cancel
 Authorization: Bearer {{token}}
