@@ -37,7 +37,6 @@ class OrdersProblemHandler {
 
     @ExceptionHandler
     ProblemDetail invalidOrderState(InvalidOrderStateException exception) {
-        return Problems.of(
-                HttpStatus.CONFLICT, "invalid-order-state", "Invalid order state", exception.getMessage());
+        return Problems.of(HttpStatus.CONFLICT, "invalid-order-state", "Invalid order state", exception.getMessage());
     }
 }

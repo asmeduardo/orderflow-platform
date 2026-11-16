@@ -70,8 +70,7 @@ class OrderListingIT {
         var body = """
                 {"channel": "%s", "currency": "BRL",
                  "items": [{"sku": "%s", "quantity": %d, "unitPrice": 10.00}]}
-                """
-                .formatted(channel, sku, quantity);
+                """.formatted(channel, sku, quantity);
         assertThat(mvc.post()
                         .uri("/api/v1/orders")
                         .header("Idempotency-Key", UUID.randomUUID().toString())

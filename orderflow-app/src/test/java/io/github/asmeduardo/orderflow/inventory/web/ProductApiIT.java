@@ -26,7 +26,10 @@ class ProductApiIT {
                         """)
                 .exchange();
 
-        assertThat(created).hasStatus(HttpStatus.CREATED).headers().hasValue("Location", "/api/v1/products/MUG-BLUE-01");
+        assertThat(created)
+                .hasStatus(HttpStatus.CREATED)
+                .headers()
+                .hasValue("Location", "/api/v1/products/MUG-BLUE-01");
 
         assertThat(mvc.get().uri("/api/v1/products/MUG-BLUE-01"))
                 .hasStatusOk()
@@ -59,9 +62,16 @@ class ProductApiIT {
         var body = """
                 {"sku": "TEE-BLACK-M", "name": "Black tee M", "onHandQuantity": 3}
                 """;
-        mvc.post().uri("/api/v1/products").contentType(MediaType.APPLICATION_JSON).content(body).exchange();
+        mvc.post()
+                .uri("/api/v1/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body)
+                .exchange();
 
-        var duplicate = mvc.post().uri("/api/v1/products").contentType(MediaType.APPLICATION_JSON).content(body);
+        var duplicate = mvc.post()
+                .uri("/api/v1/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body);
 
         assertThat(duplicate)
                 .hasStatus(HttpStatus.CONFLICT)

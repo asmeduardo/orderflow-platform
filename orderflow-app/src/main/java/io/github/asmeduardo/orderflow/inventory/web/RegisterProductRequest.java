@@ -8,6 +8,8 @@ import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 record RegisterProductRequest(
-        @NotNull @Pattern(regexp = Skus.PATTERN, message = Skus.MESSAGE) String sku,
+        @NotNull @Pattern(regexp = Skus.PATTERN, message = Skus.MESSAGE)
+        String sku,
+
         @NotBlank @Size(max = 200) String name,
         @NotNull @PositiveOrZero Integer onHandQuantity) {}

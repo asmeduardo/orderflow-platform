@@ -27,6 +27,7 @@
     <java.version>25</java.version>
     <springdoc.version>3.2.0</springdoc.version>
     <archunit.version>1.5.1</archunit.version>
+    <spotless.version>3.11.0</spotless.version>
   </properties>
 
   <dependencyManagement>
@@ -58,6 +59,24 @@
       </plugins>
     </pluginManagement>
     <plugins>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${spotless.version}</version>
+        <configuration>
+          <java>
+            <palantirJavaFormat/>
+            <removeUnusedImports/>
+          </java>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>

@@ -118,7 +118,8 @@ public class Order {
             case CANCELLED -> {
                 return false;
             }
-            case REJECTED -> throw new InvalidOrderStateException("Order " + id + " was rejected and cannot be cancelled");
+            case REJECTED ->
+                throw new InvalidOrderStateException("Order " + id + " was rejected and cannot be cancelled");
             case PENDING, CONFIRMED -> {
                 status = OrderStatus.CANCELLED;
                 updatedAt = now;

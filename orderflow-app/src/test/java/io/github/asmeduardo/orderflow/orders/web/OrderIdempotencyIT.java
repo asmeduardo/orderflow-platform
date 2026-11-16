@@ -47,7 +47,8 @@ class OrderIdempotencyIT {
         assertThat(first).hasStatus(HttpStatus.CREATED);
         assertThat(retry).hasStatus(HttpStatus.CREATED).headers().hasValue("Idempotent-Replayed", "true");
         assertThat(idOf(retry)).isEqualTo(idOf(first));
-        assertThat(retry.getResponse().getHeader("Location")).isEqualTo(first.getResponse().getHeader("Location"));
+        assertThat(retry.getResponse().getHeader("Location"))
+                .isEqualTo(first.getResponse().getHeader("Location"));
         assertThat(products.get("IDEM-A").reservedQuantity()).isEqualTo(3);
     }
 
@@ -62,7 +63,8 @@ class OrderIdempotencyIT {
 
         assertThat(fromWebStore).hasStatus(HttpStatus.CREATED);
         assertThat(fromMarketplace).hasStatus(HttpStatus.CREATED);
-        assertThat(fromMarketplace.getResponse().getHeader("Idempotent-Replayed")).isNull();
+        assertThat(fromMarketplace.getResponse().getHeader("Idempotent-Replayed"))
+                .isNull();
         assertThat(idOf(fromMarketplace)).isNotEqualTo(idOf(fromWebStore));
         assertThat(products.get("IDEM-TENANT").reservedQuantity()).isEqualTo(2);
     }
@@ -158,8 +160,7 @@ class OrderIdempotencyIT {
         return """
                 {"channel": "WEB_STORE", "currency": "BRL",
                  "items": [{"sku": "%s", "quantity": %d, "unitPrice": 25.00}]}
-                """
-                .formatted(sku, quantity);
+                """.formatted(sku, quantity);
     }
 
     private static String idOf(MvcTestResult result) {

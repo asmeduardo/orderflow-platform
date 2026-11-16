@@ -14,7 +14,9 @@ class MoneyTest {
 
     @Test
     void normalizesAmountToTheCurrencyScale() {
-        assertThat(new Money(new BigDecimal("59.9"), BRL).amount()).isEqualByComparingTo("59.90").hasScaleOf(2);
+        assertThat(new Money(new BigDecimal("59.9"), BRL).amount())
+                .isEqualByComparingTo("59.90")
+                .hasScaleOf(2);
         assertThat(new Money(new BigDecimal("1500"), JPY).amount()).hasScaleOf(0);
     }
 

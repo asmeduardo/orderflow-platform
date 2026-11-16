@@ -17,14 +17,20 @@ final class OrderRequestFingerprint {
 
     static String of(PlaceOrderCommand command) {
         var canonical = new StringBuilder()
-                .append("channel=").append(command.channel()).append('\n')
-                .append("currency=").append(command.currency()).append('\n');
+                .append("channel=")
+                .append(command.channel())
+                .append('\n')
+                .append("currency=")
+                .append(command.currency())
+                .append('\n');
         command.lines().stream()
                 .sorted(Comparator.comparing(line -> line.sku()))
                 .forEach(line -> canonical
                         .append("line=")
-                        .append(line.sku()).append('|')
-                        .append(line.quantity()).append('|')
+                        .append(line.sku())
+                        .append('|')
+                        .append(line.quantity())
+                        .append('|')
                         .append(line.unitPrice().stripTrailingZeros().toPlainString())
                         .append('\n'));
         return HexFormat.of().formatHex(sha256(canonical.toString()));

@@ -64,10 +64,13 @@ class GlobalProblemHandler extends ResponseEntityExceptionHandler {
         var errors = new ArrayList<Map<String, String>>();
         for (var result : exception.getParameterValidationResults()) {
             if (result instanceof ParameterErrors bodyErrors) {
-                bodyErrors.getFieldErrors().forEach(error -> errors.add(fieldError(error.getField(), error.getDefaultMessage())));
+                bodyErrors
+                        .getFieldErrors()
+                        .forEach(error -> errors.add(fieldError(error.getField(), error.getDefaultMessage())));
             } else {
                 result.getResolvableErrors()
-                        .forEach(error -> errors.add(fieldError(nameOf(result.getMethodParameter()), error.getDefaultMessage())));
+                        .forEach(error ->
+                                errors.add(fieldError(nameOf(result.getMethodParameter()), error.getDefaultMessage())));
             }
         }
         errors.sort(Comparator.comparing(error -> error.get("field")));
@@ -145,8 +148,8 @@ class GlobalProblemHandler extends ResponseEntityExceptionHandler {
     }
 
     private static ProblemDetail invalidRequest(List<Map<String, String>> errors) {
-        var problem =
-                Problems.of(HttpStatus.BAD_REQUEST, "invalid-request", "Invalid request", "One or more fields are invalid.");
+        var problem = Problems.of(
+                HttpStatus.BAD_REQUEST, "invalid-request", "Invalid request", "One or more fields are invalid.");
         problem.setProperty("errors", errors);
         return problem;
     }

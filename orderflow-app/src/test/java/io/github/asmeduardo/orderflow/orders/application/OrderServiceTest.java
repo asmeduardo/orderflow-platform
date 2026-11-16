@@ -59,7 +59,8 @@ class OrderServiceTest {
     void replaysTheOriginalOrderWithoutReservingStockAgain() {
         var existing = confirmedOrder();
         when(keys.findById(KEY))
-                .thenReturn(Optional.of(new IdempotencyKey(KEY, OrderRequestFingerprint.of(COMMAND), existing.getId(), NOW)));
+                .thenReturn(Optional.of(
+                        new IdempotencyKey(KEY, OrderRequestFingerprint.of(COMMAND), existing.getId(), NOW)));
         when(orders.findWithItemsById(existing.getId())).thenReturn(Optional.of(existing));
 
         var result = service().place(KEY, COMMAND);
@@ -72,7 +73,8 @@ class OrderServiceTest {
 
     @Test
     void refusesAKeyAlreadyUsedForADifferentRequest() {
-        when(keys.findById(KEY)).thenReturn(Optional.of(new IdempotencyKey(KEY, "f".repeat(64), UUID.randomUUID(), NOW)));
+        when(keys.findById(KEY))
+                .thenReturn(Optional.of(new IdempotencyKey(KEY, "f".repeat(64), UUID.randomUUID(), NOW)));
 
         assertThatThrownBy(() -> service().place(KEY, COMMAND)).isInstanceOf(IdempotencyKeyReusedException.class);
         verifyNoInteractions(stock);
@@ -83,7 +85,8 @@ class OrderServiceTest {
         var winner = confirmedOrder();
         when(keys.findById(KEY))
                 .thenReturn(Optional.empty())
-                .thenReturn(Optional.of(new IdempotencyKey(KEY, OrderRequestFingerprint.of(COMMAND), winner.getId(), NOW)));
+                .thenReturn(
+                        Optional.of(new IdempotencyKey(KEY, OrderRequestFingerprint.of(COMMAND), winner.getId(), NOW)));
         when(orders.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(keys.saveAndFlush(any(IdempotencyKey.class)))
                 .thenThrow(new DataIntegrityViolationException("duplicate key value violates uk"));
@@ -111,7 +114,10 @@ class OrderServiceTest {
 
     private static Order confirmedOrder() {
         var order = Order.place(
-                "WEB_STORE", Currency.getInstance("BRL"), List.of(new OrderLine("MUG", 1, new BigDecimal("10.00"))), NOW);
+                "WEB_STORE",
+                Currency.getInstance("BRL"),
+                List.of(new OrderLine("MUG", 1, new BigDecimal("10.00"))),
+                NOW);
         order.confirm(NOW);
         return order;
     }

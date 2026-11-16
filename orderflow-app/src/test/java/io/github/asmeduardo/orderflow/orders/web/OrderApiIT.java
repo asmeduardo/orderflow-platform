@@ -30,10 +30,7 @@ class OrderApiIT {
                  "items": [{"sku": "ORD-MUG", "quantity": 2, "unitPrice": 59.9}]}
                 """);
 
-        assertThat(placed)
-                .hasStatus(HttpStatus.CREATED)
-                .bodyJson()
-                .isLenientlyEqualTo("""
+        assertThat(placed).hasStatus(HttpStatus.CREATED).bodyJson().isLenientlyEqualTo("""
                         {"status": "CONFIRMED", "channel": "WEB_STORE", "currency": "BRL",
                          "items": [{"sku": "ORD-MUG", "quantity": 2, "unitPrice": 59.90, "lineTotal": 119.80}],
                          "totalAmount": 119.80}
@@ -59,7 +56,11 @@ class OrderApiIT {
                            {"sku": "ORD-LAMP", "quantity": 2, "unitPrice": 120.00}]}
                 """);
 
-        assertThat(placed).hasStatus(HttpStatus.CREATED).bodyJson().extractingPath("$.status").isEqualTo("REJECTED");
+        assertThat(placed)
+                .hasStatus(HttpStatus.CREATED)
+                .bodyJson()
+                .extractingPath("$.status")
+                .isEqualTo("REJECTED");
         assertThat(placed)
                 .bodyJson()
                 .extractingPath("$.rejectionReason")
@@ -76,10 +77,7 @@ class OrderApiIT {
                  "items": [{"sku": "ok-not", "quantity": 0, "unitPrice": -1}]}
                 """);
 
-        assertThat(response)
-                .hasStatus(HttpStatus.BAD_REQUEST)
-                .bodyJson()
-                .isLenientlyEqualTo("""
+        assertThat(response).hasStatus(HttpStatus.BAD_REQUEST).bodyJson().isLenientlyEqualTo("""
                         {"type": "urn:orderflow:problem:invalid-request",
                          "errors": [{"field": "channel"}, {"field": "currency"},
                                     {"field": "items[0].quantity"}, {"field": "items[0].sku"},

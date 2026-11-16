@@ -19,8 +19,8 @@ class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain apiSecurity(HttpSecurity http, ProblemDetailsSecurityHandler problems) throws Exception {
-        http.authorizeHttpRequests(requests -> requests
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/error")
+        http.authorizeHttpRequests(requests -> requests.requestMatchers(
+                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/error")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/**")
                         .hasAuthority(Scopes.authority(Scopes.READ))
@@ -31,8 +31,8 @@ class SecurityConfiguration {
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults())
                         .authenticationEntryPoint(problems)
                         .accessDeniedHandler(problems))
-                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(problems)
-                        .accessDeniedHandler(problems))
+                .exceptionHandling(exceptions ->
+                        exceptions.authenticationEntryPoint(problems).accessDeniedHandler(problems))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // Bearer tokens are never sent automatically by browsers, so there is no CSRF exposure.
                 .csrf(csrf -> csrf.disable());

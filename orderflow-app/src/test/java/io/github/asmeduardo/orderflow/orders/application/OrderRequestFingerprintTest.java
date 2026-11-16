@@ -18,7 +18,9 @@ class OrderRequestFingerprintTest {
         var equivalent = new PlaceOrderCommand(
                 "WEB_STORE",
                 "BRL",
-                List.of(new OrderLine("TEE", 1, new BigDecimal("80.00")), new OrderLine("MUG", 2, new BigDecimal("59.9"))));
+                List.of(
+                        new OrderLine("TEE", 1, new BigDecimal("80.00")),
+                        new OrderLine("MUG", 2, new BigDecimal("59.9"))));
 
         assertThat(OrderRequestFingerprint.of(equivalent)).isEqualTo(OrderRequestFingerprint.of(original));
     }

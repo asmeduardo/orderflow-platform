@@ -89,8 +89,8 @@ class StockReservationIT {
         products.register("RSV-HOT", "Last units on sale", 10);
         int buyers = 40;
 
-        var outcomes = runConcurrently(buyers, () -> reservations.reserve(
-                UUID.randomUUID(), List.of(new StockLine("RSV-HOT", 1))));
+        var outcomes = runConcurrently(
+                buyers, () -> reservations.reserve(UUID.randomUUID(), List.of(new StockLine("RSV-HOT", 1))));
 
         assertThat(outcomes).filteredOn(Reserved.class::isInstance).hasSize(10);
         assertThat(outcomes).filteredOn(Rejected.class::isInstance).hasSize(buyers - 10);
@@ -107,8 +107,9 @@ class StockReservationIT {
         int orders = 30;
         var counter = new java.util.concurrent.atomic.AtomicInteger();
 
-        var outcomes = runConcurrently(orders, () -> reservations.reserve(
-                UUID.randomUUID(), counter.getAndIncrement() % 2 == 0 ? forward : backward));
+        var outcomes = runConcurrently(
+                orders,
+                () -> reservations.reserve(UUID.randomUUID(), counter.getAndIncrement() % 2 == 0 ? forward : backward));
 
         assertThat(outcomes).allMatch(Reserved.class::isInstance);
         assertThat(products.get("RSV-X").reservedQuantity()).isEqualTo(orders);

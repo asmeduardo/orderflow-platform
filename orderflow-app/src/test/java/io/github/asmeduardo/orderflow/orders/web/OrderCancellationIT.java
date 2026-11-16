@@ -29,7 +29,11 @@ class OrderCancellationIT {
 
         var cancelled = mvc.post().uri("/api/v1/orders/{id}/cancel", orderId).exchange();
 
-        assertThat(cancelled).hasStatusOk().bodyJson().extractingPath("$.status").isEqualTo("CANCELLED");
+        assertThat(cancelled)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.status")
+                .isEqualTo("CANCELLED");
         assertThat(products.get("CNL-A").reservedQuantity()).isZero();
         assertThat(products.get("CNL-A").availableQuantity()).isEqualTo(4);
     }
@@ -62,15 +66,15 @@ class OrderCancellationIT {
 
     @Test
     void cancellingAnUnknownOrderIsNotFound() {
-        assertThat(mvc.post().uri("/api/v1/orders/{id}/cancel", UUID.randomUUID())).hasStatus(HttpStatus.NOT_FOUND);
+        assertThat(mvc.post().uri("/api/v1/orders/{id}/cancel", UUID.randomUUID()))
+                .hasStatus(HttpStatus.NOT_FOUND);
     }
 
     private String place(String sku, int quantity) throws UnsupportedEncodingException {
         var body = """
                 {"channel": "WEB_STORE", "currency": "BRL",
                  "items": [{"sku": "%s", "quantity": %d, "unitPrice": 10.00}]}
-                """
-                .formatted(sku, quantity);
+                """.formatted(sku, quantity);
         var result = mvc.post()
                 .uri("/api/v1/orders")
                 .header("Idempotency-Key", UUID.randomUUID().toString())

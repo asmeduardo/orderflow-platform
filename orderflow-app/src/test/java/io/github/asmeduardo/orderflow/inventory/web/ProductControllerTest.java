@@ -53,10 +53,7 @@ class ProductControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"sku\": ");
 
-        assertThat(response)
-                .hasStatus(HttpStatus.BAD_REQUEST)
-                .bodyJson()
-                .isLenientlyEqualTo("""
+        assertThat(response).hasStatus(HttpStatus.BAD_REQUEST).bodyJson().isLenientlyEqualTo("""
                         {"type": "urn:orderflow:problem:malformed-request", "status": 400,
                          "detail": "The request body could not be read."}
                         """);

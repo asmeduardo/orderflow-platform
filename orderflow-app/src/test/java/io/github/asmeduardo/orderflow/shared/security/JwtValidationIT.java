@@ -32,8 +32,9 @@ class JwtValidationIT {
 
     @BeforeEach
     void buildMockMvcWithoutDefaultToken() {
-        mvc = MockMvcTester.create(
-                MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build());
+        mvc = MockMvcTester.create(MockMvcBuilders.webAppContextSetup(context)
+                .apply(springSecurity())
+                .build());
     }
 
     @Test
@@ -70,13 +71,17 @@ class JwtValidationIT {
 
     @Test
     void grantsOnlyTheScopesInTheToken() {
-        var writeOnly = TestJwtKeys.sign(claims().claim("scope", "orderflow.operate").build());
+        var writeOnly =
+                TestJwtKeys.sign(claims().claim("scope", "orderflow.operate").build());
 
         assertThat(get(writeOnly)).hasStatus(HttpStatus.FORBIDDEN);
     }
 
     private MvcTestResult get(String token) {
-        return mvc.get().uri("/api/v1/products").header("Authorization", "Bearer " + token).exchange();
+        return mvc.get()
+                .uri("/api/v1/products")
+                .header("Authorization", "Bearer " + token)
+                .exchange();
     }
 
     private static JWTClaimsSet.Builder claims() {

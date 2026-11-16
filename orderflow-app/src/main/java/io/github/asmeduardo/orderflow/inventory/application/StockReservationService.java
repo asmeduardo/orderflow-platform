@@ -69,7 +69,9 @@ class StockReservationService implements StockReservations {
         if (active.isEmpty()) {
             return;
         }
-        var productIds = active.stream().map(reservation -> reservation.getProduct().getId()).toList();
+        var productIds = active.stream()
+                .map(reservation -> reservation.getProduct().getId())
+                .toList();
         var locked = products.lockAllById(productIds).stream().collect(toMap(Product::getId, identity()));
         var now = clock.instant();
         for (var reservation : active) {
@@ -85,8 +87,8 @@ class StockReservationService implements StockReservations {
             if (product == null) {
                 shortages.add(new Shortage(sku, Shortage.Reason.UNKNOWN_PRODUCT, quantity, 0));
             } else if (!product.canReserve(quantity)) {
-                shortages.add(new Shortage(
-                        sku, Shortage.Reason.INSUFFICIENT_STOCK, quantity, product.availableQuantity()));
+                shortages.add(
+                        new Shortage(sku, Shortage.Reason.INSUFFICIENT_STOCK, quantity, product.availableQuantity()));
             }
         });
         return shortages;

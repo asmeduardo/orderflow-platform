@@ -16,15 +16,23 @@ import java.math.BigDecimal;
 import java.util.List;
 
 record PlaceOrderRequest(
-        @NotNull @Pattern(regexp = "[A-Z][A-Z0-9_]{1,31}", message = "must be 2-32 uppercase letters, digits or underscores")
-                String channel,
-        @NotNull @Pattern(regexp = "[A-Z]{3}", message = "must be an ISO 4217 currency code") String currency,
+        @NotNull
+        @Pattern(regexp = "[A-Z][A-Z0-9_]{1,31}", message = "must be 2-32 uppercase letters, digits or underscores")
+        String channel,
+
+        @NotNull @Pattern(regexp = "[A-Z]{3}", message = "must be an ISO 4217 currency code")
+        String currency,
+
         @NotEmpty @Size(max = 100) List<@NotNull @Valid Item> items) {
 
     record Item(
-            @NotNull @Pattern(regexp = Skus.PATTERN, message = Skus.MESSAGE) String sku,
+            @NotNull @Pattern(regexp = Skus.PATTERN, message = Skus.MESSAGE)
+            String sku,
+
             @NotNull @Positive @Max(10_000) Integer quantity,
-            @NotNull @PositiveOrZero @Digits(integer = 15, fraction = 4) BigDecimal unitPrice) {}
+
+            @NotNull @PositiveOrZero @Digits(integer = 15, fraction = 4)
+            BigDecimal unitPrice) {}
 
     PlaceOrderCommand toCommand() {
         var lines = items.stream()

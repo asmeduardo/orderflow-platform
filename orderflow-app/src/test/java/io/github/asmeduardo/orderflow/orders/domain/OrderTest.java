@@ -21,7 +21,9 @@ class OrderTest {
         var order = Order.place(
                 "WEB_STORE",
                 BRL,
-                List.of(new OrderLine("MUG-BLUE-01", 2, new BigDecimal("59.90")), new OrderLine("TEE-M", 1, new BigDecimal("0.20"))),
+                List.of(
+                        new OrderLine("MUG-BLUE-01", 2, new BigDecimal("59.90")),
+                        new OrderLine("TEE-M", 1, new BigDecimal("0.20"))),
                 NOW);
 
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);

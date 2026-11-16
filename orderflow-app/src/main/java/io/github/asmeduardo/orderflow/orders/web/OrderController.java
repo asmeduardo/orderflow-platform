@@ -54,21 +54,29 @@ public class OrderController {
             description = "Records the order and tries to reserve its stock. Retrying with the same "
                     + "Idempotency-Key and payload returns the original order with Idempotent-Replayed: true.")
     @ApiResponse(responseCode = "201", description = "Order recorded; see status for the reservation outcome")
-    @ApiResponse(responseCode = "400", description = "Invalid request or order", content = @Content(mediaType = PROBLEM_JSON))
+    @ApiResponse(
+            responseCode = "400",
+            description = "Invalid request or order",
+            content = @Content(mediaType = PROBLEM_JSON))
     @ApiResponse(
             responseCode = "422",
             description = "Idempotency key already used for a different payload",
             content = @Content(mediaType = PROBLEM_JSON))
     public ResponseEntity<OrderView> place(
-            @Parameter(description = "Client-generated key, unique per order attempt for the calling client (a UUID is a good choice)")
+            @Parameter(
+                            description =
+                                    "Client-generated key, unique per order attempt for the calling client (a UUID is a good choice)")
                     @RequestHeader(IDEMPOTENCY_KEY)
-                    @Pattern(regexp = "[A-Za-z0-9._:-]{8,100}", message = "must be 8-100 characters: letters, digits or . _ : -")
+                    @Pattern(
+                            regexp = "[A-Za-z0-9._:-]{8,100}",
+                            message = "must be 8-100 characters: letters, digits or . _ : -")
                     String idempotencyKey,
             @Valid @RequestBody PlaceOrderRequest request,
             @AuthenticationPrincipal Jwt client) {
         var key = new IdempotencyKey.Id(client.getSubject(), idempotencyKey);
         var result = orders.place(key, request.toCommand());
-        var response = ResponseEntity.created(URI.create("/api/v1/orders/" + result.order().id()));
+        var response = ResponseEntity.created(
+                URI.create("/api/v1/orders/" + result.order().id()));
         if (result.replayed()) {
             response.header(IDEMPOTENT_REPLAYED, "true");
         }
@@ -83,7 +91,9 @@ public class OrderController {
     }
 
     @PostMapping("/{id}/cancel")
-    @Operation(summary = "Cancel an order and release its stock", description = "Cancelling twice has no further effect.")
+    @Operation(
+            summary = "Cancel an order and release its stock",
+            description = "Cancelling twice has no further effect.")
     @ApiResponse(
             responseCode = "409",
             description = "Order was rejected or changed concurrently",

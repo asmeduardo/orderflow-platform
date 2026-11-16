@@ -37,8 +37,9 @@ class ApiAuthorizationIT {
 
     @BeforeEach
     void buildMockMvcWithoutDefaultToken() {
-        mvc = MockMvcTester.create(
-                MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build());
+        mvc = MockMvcTester.create(MockMvcBuilders.webAppContextSetup(context)
+                .apply(springSecurity())
+                .build());
     }
 
     @ParameterizedTest(name = "{0} {1} without a token is 401")
@@ -52,9 +53,7 @@ class ApiAuthorizationIT {
     void everyApiEndpointRequiresABearerToken(String method, String path) {
         var response = mvc.perform(request(HttpMethod.valueOf(method), path));
 
-        assertThat(response)
-                .hasStatus(HttpStatus.UNAUTHORIZED)
-                .hasContentType(MediaType.APPLICATION_PROBLEM_JSON);
+        assertThat(response).hasStatus(HttpStatus.UNAUTHORIZED).hasContentType(MediaType.APPLICATION_PROBLEM_JSON);
         // RFC 6750 challenge; Spring Security also advertises RFC 9728 resource metadata in it.
         assertThat(response.getResponse().getHeader("WWW-Authenticate")).startsWith("Bearer");
         assertThat(response).bodyJson().extractingPath("$.type").isEqualTo("urn:orderflow:problem:unauthorized");
@@ -70,7 +69,8 @@ class ApiAuthorizationIT {
                 .with(token(READ))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"sku\": \"AUTH-READ\", \"name\": \"Nope\", \"onHandQuantity\": 1}");
-        var cancel = mvc.post().uri("/api/v1/orders/{id}/cancel", UUID.randomUUID()).with(token(READ));
+        var cancel =
+                mvc.post().uri("/api/v1/orders/{id}/cancel", UUID.randomUUID()).with(token(READ));
 
         assertThat(write)
                 .hasStatus(HttpStatus.FORBIDDEN)

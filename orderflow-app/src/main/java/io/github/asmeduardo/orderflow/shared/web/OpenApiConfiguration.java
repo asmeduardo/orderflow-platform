@@ -24,7 +24,8 @@ class OpenApiConfiguration {
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")
                                         .bearerFormat("JWT")
-                                        .description("Access token with scope orderflow.read and/or orderflow.operate")))
+                                        .description(
+                                                "Access token with scope orderflow.read and/or orderflow.operate")))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_JWT))
                 .info(new Info()
                         .title("OrderFlow API")

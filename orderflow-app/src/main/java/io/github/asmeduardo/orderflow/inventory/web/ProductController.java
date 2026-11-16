@@ -36,7 +36,10 @@ public class ProductController {
     @PostMapping
     @Operation(summary = "Register a product with its initial on-hand stock")
     @ApiResponse(responseCode = "201", description = "Product registered")
-    @ApiResponse(responseCode = "409", description = "SKU already registered", content = @Content(mediaType = PROBLEM_JSON))
+    @ApiResponse(
+            responseCode = "409",
+            description = "SKU already registered",
+            content = @Content(mediaType = PROBLEM_JSON))
     public ResponseEntity<ProductView> register(@Valid @RequestBody RegisterProductRequest request) {
         var product = products.register(request.sku(), request.name().strip(), request.onHandQuantity());
         return ResponseEntity.created(URI.create("/api/v1/products/" + product.sku()))
