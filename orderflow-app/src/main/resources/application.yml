@@ -18,6 +18,16 @@ spring:
           issuer-uri: ${ORDERFLOW_ISSUER_URI:http://localhost:9000}
           jwk-set-uri: ${ORDERFLOW_JWK_SET_URI:${ORDERFLOW_ISSUER_URI:http://localhost:9000}/oauth2/jwks}
           audiences: orderflow-api
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      # The relay sends one event at a time and waits for the acknowledgement of all in-sync replicas.
+      acks: all
+      properties:
+        enable.idempotence: true
+        max.block.ms: 5000
+        request.timeout.ms: 5000
+        delivery.timeout.ms: 10000
   jpa:
     open-in-view: false
     hibernate:

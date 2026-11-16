@@ -10,8 +10,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ContextConfiguration;
 
 /**
- * Boots the full application against a real PostgreSQL started by Testcontainers. Every test
- * annotated with it shares one cached application context, and therefore one database container.
+ * Boots the full application against real PostgreSQL and Kafka started by Testcontainers. Every test
+ * annotated with it shares one cached application context, and therefore one set of containers.
  * The auto-configured {@code MockMvc} sends an operator token on every request (see {@link
  * DefaultTokenConfiguration}); the resource server trusts the key from {@link TestJwtKeys}.
  */
@@ -19,6 +19,6 @@ import org.springframework.test.context.ContextConfiguration;
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import({PostgresTestConfiguration.class, DefaultTokenConfiguration.class})
+@Import({PostgresTestConfiguration.class, KafkaTestConfiguration.class, DefaultTokenConfiguration.class})
 @ContextConfiguration(initializers = TestJwtKeys.class)
 public @interface IntegrationTest {}
