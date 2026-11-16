@@ -50,6 +50,20 @@ class TokenEndpointIT {
     }
 
     @Test
+    void clientMaySendItsSecretInTheRequestBody() {
+        var response = mvc.post()
+                .uri("/oauth2/token")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .formField("grant_type", "client_credentials")
+                .formField("scope", "orderflow.read")
+                .formField("client_id", "orderflow-reader")
+                .formField("client_secret", "reader-test-secret")
+                .exchange();
+
+        assertThat(response).hasStatusOk().bodyJson().hasPath("$.access_token");
+    }
+
+    @Test
     void wrongSecretIsRejected() {
         assertThat(token("orderflow-reader", "not-the-secret", "orderflow.read"))
                 .hasStatus(HttpStatus.UNAUTHORIZED);

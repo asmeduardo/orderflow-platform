@@ -17,7 +17,7 @@ spring:
             registration:
               client-id: orderflow-reader
               client-secret: "{noop}${ORDERFLOW_READER_CLIENT_SECRET}"
-              client-authentication-methods: client_secret_basic
+              client-authentication-methods: client_secret_basic,client_secret_post
               authorization-grant-types: client_credentials
               scopes: orderflow.read
             token:
@@ -26,7 +26,7 @@ spring:
             registration:
               client-id: orderflow-operator
               client-secret: "{noop}${ORDERFLOW_OPERATOR_CLIENT_SECRET}"
-              client-authentication-methods: client_secret_basic
+              client-authentication-methods: client_secret_basic,client_secret_post
               authorization-grant-types: client_credentials
               scopes: orderflow.read,orderflow.operate
             token:
