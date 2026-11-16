@@ -104,7 +104,10 @@ Os serviços leem o mesmo `.env` (ignorado pelo Git) que o Docker Compose; as mi
 O servidor de autorização local tem dois clientes `client_credentials`: `orderflow-reader` (escopo `orderflow.read`) e `orderflow-operator` (escopos `orderflow.read` e `orderflow.operate`). Os segredos são os definidos no `.env`.
 
 ```bash
-curl -s -u "orderflow-operator:$ORDERFLOW_OPERATOR_CLIENT_SECRET"   -d grant_type=client_credentials -d "scope=orderflow.read orderflow.operate"   http://localhost:9000/oauth2/token
+curl -s -u "orderflow-operator:$ORDERFLOW_OPERATOR_CLIENT_SECRET" \
+  -d grant_type=client_credentials \
+  -d "scope=orderflow.read orderflow.operate" \
+  http://localhost:9000/oauth2/token
 ```
 
 O campo `access_token` da resposta vale por 15 minutos e é enviado como `Authorization: Bearer <token>`. No Swagger UI, use o botão **Authorize** e cole o token.
