@@ -19,12 +19,12 @@
 
 ## Fase 3 — eventos
 
-- [ ] adicionar Kafka local;
-- [ ] implementar transactional outbox;
-- [ ] separar o contexto de estoque;
-- [ ] definir contratos de evento versionados;
-- [ ] implementar idempotência, retry e DLQ;
-- [ ] testar duplicidade, reordenação e indisponibilidade.
+- [x] adicionar Kafka local;
+- [x] implementar transactional outbox ([ADR 0007](adr/0007-transactional-outbox.md));
+- [x] separar o contexto de estoque ([ADR 0009](adr/0009-extracao-do-servico-de-estoque.md));
+- [x] definir contratos de evento versionados ([ADR 0008](adr/0008-eventos-versionados-e-consumidores-idempotentes.md));
+- [x] implementar idempotência, retry e DLQ;
+- [x] testar duplicidade, reordenação e indisponibilidade.
 
 ## Fase 4 — operação
 

@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceita.
+Aceita. A reserva síncrona foi substituída pela comunicação por eventos da [ADR 0008](0008-eventos-versionados-e-consumidores-idempotentes.md), e o estoque foi extraído para um serviço próprio na [ADR 0009](0009-extracao-do-servico-de-estoque.md); a separação por schema e a ausência de chaves estrangeiras entre contextos continuam valendo.
 
 ## Contexto
 
