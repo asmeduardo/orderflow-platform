@@ -1,6 +1,7 @@
 name: orderflow
 
 services:
+  # Database of order-service.
   postgres:
     image: postgres:18-alpine
     environment:
@@ -11,6 +12,23 @@ services:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Database of inventory-service: each service owns its data.
+  inventory-postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${INVENTORY_POSTGRES_DB:-inventory}
+      POSTGRES_USER: ${INVENTORY_POSTGRES_USER:-inventory}
+      POSTGRES_PASSWORD: ${INVENTORY_POSTGRES_PASSWORD:?copy .env.example to .env and set INVENTORY_POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:${INVENTORY_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - inventory-postgres-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
@@ -38,3 +56,4 @@ services:
 
 volumes:
   postgres-data:
+  inventory-postgres-data:

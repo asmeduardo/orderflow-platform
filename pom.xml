@@ -22,7 +22,8 @@
     <module>event-contracts</module>
     <module>service-support</module>
     <module>service-test-support</module>
-    <module>orderflow-app</module>
+    <module>order-service</module>
+    <module>inventory-service</module>
     <module>dev-auth-server</module>
   </modules>
 

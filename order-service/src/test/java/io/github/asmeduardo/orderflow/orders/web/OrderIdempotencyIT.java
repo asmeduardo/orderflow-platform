@@ -1,0 +1,176 @@
+package io.github.asmeduardo.orderflow.orders.web;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+
+import com.jayway.jsonpath.JsonPath;
+import io.github.asmeduardo.orderflow.support.IntegrationTest;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import org.springframework.test.web.servlet.assertj.MvcTestResult;
+
+@IntegrationTest
+class OrderIdempotencyIT {
+
+    private static final String ORDER_PLACED_EVENTS_FOR_SKU = """
+            select count(*) from orders.outbox_event
+             where event_type = 'OrderPlaced' and payload -> 'payload' -> 'lines' -> 0 ->> 'sku' = ?
+            """;
+
+    @Autowired
+    MockMvcTester mvc;
+
+    @Autowired
+    JdbcTemplate jdbc;
+
+    @Test
+    void retryWithTheSameKeyAndPayloadReturnsTheOriginalOrder() {
+        var key = UUID.randomUUID().toString();
+        var body = order("IDEM-A", 3);
+
+        var first = place(key, body);
+        var retry = place(key, body);
+
+        assertThat(first).hasStatus(HttpStatus.CREATED);
+        assertThat(retry).hasStatus(HttpStatus.CREATED).headers().hasValue("Idempotent-Replayed", "true");
+        assertThat(idOf(retry)).isEqualTo(idOf(first));
+        assertThat(retry.getResponse().getHeader("Location"))
+                .isEqualTo(first.getResponse().getHeader("Location"));
+        assertOrderPlacedEvents("IDEM-A", 1);
+    }
+
+    @Test
+    void keysOfDifferentClientsNeverCollide() {
+        var sharedKey = "order-0001";
+        var body = order("IDEM-TENANT", 1);
+
+        var fromWebStore = placeAs("web-store-integration", sharedKey, body);
+        var fromMarketplace = placeAs("marketplace-integration", sharedKey, body);
+
+        assertThat(fromWebStore).hasStatus(HttpStatus.CREATED);
+        assertThat(fromMarketplace).hasStatus(HttpStatus.CREATED);
+        assertThat(fromMarketplace.getResponse().getHeader("Idempotent-Replayed"))
+                .isNull();
+        assertThat(idOf(fromMarketplace)).isNotEqualTo(idOf(fromWebStore));
+        assertOrderPlacedEvents("IDEM-TENANT", 2);
+    }
+
+    @Test
+    void reusingAKeyForADifferentPayloadIsRejected() {
+        var key = UUID.randomUUID().toString();
+        place(key, order("IDEM-B", 1));
+
+        var reuse = place(key, order("IDEM-B", 2));
+
+        assertThat(reuse)
+                .hasStatus(HttpStatus.UNPROCESSABLE_CONTENT)
+                .bodyJson()
+                .extractingPath("$.type")
+                .isEqualTo("urn:orderflow:problem:idempotency-key-reused");
+        assertOrderPlacedEvents("IDEM-B", 1);
+    }
+
+    @Test
+    void keyIsRequiredAndMustBeWellFormed() {
+        var missing = mvc.post()
+                .uri("/api/v1/orders")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(order("IDEM-C", 1));
+
+        assertThat(missing)
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson()
+                .extractingPath("$.type")
+                .isEqualTo("urn:orderflow:problem:invalid-request");
+        assertThat(place("short", order("IDEM-C", 1)))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson()
+                .extractingPath("$.errors[0].field")
+                .isEqualTo("Idempotency-Key");
+    }
+
+    @Test
+    void concurrentRetriesCreateExactlyOneOrder() throws Exception {
+        var key = UUID.randomUUID().toString();
+        var body = order("IDEM-RACE", 2);
+        int clients = 12;
+        var start = new CountDownLatch(1);
+
+        var ids = new ArrayList<String>();
+        try (var executor = Executors.newFixedThreadPool(clients)) {
+            var futures = new ArrayList<Future<MvcTestResult>>();
+            for (int i = 0; i < clients; i++) {
+                futures.add(executor.submit(() -> {
+                    start.await();
+                    return place(key, body);
+                }));
+            }
+            start.countDown();
+            for (var future : futures) {
+                var result = future.get(60, TimeUnit.SECONDS);
+                assertThat(result).hasStatus(HttpStatus.CREATED);
+                ids.add(idOf(result));
+            }
+        }
+
+        assertThat(ids).containsOnly(ids.getFirst());
+        assertOrderPlacedEvents("IDEM-RACE", 1);
+        assertThat(jdbc.queryForObject(
+                        "select count(*) from orders.sales_order_item where sku = 'IDEM-RACE'", Integer.class))
+                .isEqualTo(1);
+    }
+
+    /** Each order really created publishes exactly one OrderPlaced event; replays publish none. */
+    private void assertOrderPlacedEvents(String sku, int orders) {
+        assertThat(jdbc.queryForObject(ORDER_PLACED_EVENTS_FOR_SKU, Integer.class, sku))
+                .isEqualTo(orders);
+    }
+
+    private MvcTestResult place(String key, String body) {
+        return mvc.post()
+                .uri("/api/v1/orders")
+                .header("Idempotency-Key", key)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body)
+                .exchange();
+    }
+
+    private MvcTestResult placeAs(String clientId, String key, String body) {
+        return mvc.post()
+                .uri("/api/v1/orders")
+                .with(jwt().jwt(token -> token.subject(clientId))
+                        .authorities(new SimpleGrantedAuthority("SCOPE_orderflow.operate")))
+                .header("Idempotency-Key", key)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body)
+                .exchange();
+    }
+
+    private static String order(String sku, int quantity) {
+        return """
+                {"channel": "WEB_STORE", "currency": "BRL",
+                 "items": [{"sku": "%s", "quantity": %d, "unitPrice": 25.00}]}
+                """.formatted(sku, quantity);
+    }
+
+    private static String idOf(MvcTestResult result) {
+        try {
+            return JsonPath.read(result.getResponse().getContentAsString(StandardCharsets.UTF_8), "$.id");
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+}

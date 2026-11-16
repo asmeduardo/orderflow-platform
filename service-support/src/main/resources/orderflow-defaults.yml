@@ -1,0 +1,32 @@
+# Settings shared by every OrderFlow service. Each service imports this file from its own
+# application.yml and adds what is specific to it (port, database, API title).
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Keys are fetched lazily from the JWKS endpoint, so a service starts even if the issuer is down.
+          issuer-uri: ${ORDERFLOW_ISSUER_URI:http://localhost:9000}
+          jwk-set-uri: ${ORDERFLOW_JWK_SET_URI:${ORDERFLOW_ISSUER_URI:http://localhost:9000}/oauth2/jwks}
+          audiences: orderflow-api
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      # The relay sends one event at a time and waits for the acknowledgement of all in-sync replicas.
+      acks: all
+      properties:
+        enable.idempotence: true
+        max.block.ms: 5000
+        request.timeout.ms: 5000
+        delivery.timeout.ms: 10000
+    consumer:
+      auto-offset-reset: earliest
+    listener:
+      # Commit the offset after each record, so a restart redelivers at most the record in progress.
+      ack-mode: record
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate

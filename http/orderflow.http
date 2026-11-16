@@ -1,8 +1,10 @@
 ### OrderFlow API examples
 # Works with the IntelliJ HTTP Client and the VS Code REST Client extension.
-# Start the application first (see README). Run the requests from top to bottom.
+# Start the services first (see README). Run the requests from top to bottom.
+# Orders are confirmed asynchronously: GET the order a moment later to see its final status.
 
 @baseUrl = http://localhost:8080
+@inventoryUrl = http://localhost:8081
 @authUrl = http://localhost:9000
 # Client secrets: the values you chose in .env. Never commit real values.
 @operatorSecret = change-me
@@ -25,7 +27,7 @@ Content-Type: application/x-www-form-urlencoded
 grant_type=client_credentials&scope=orderflow.read&client_id=orderflow-reader&client_secret={{readerSecret}}
 
 ### Register a product with 5 units on hand
-POST {{baseUrl}}/api/v1/products
+POST {{inventoryUrl}}/api/v1/products
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -36,7 +38,7 @@ Content-Type: application/json
 }
 
 ### Register a product that is almost sold out
-POST {{baseUrl}}/api/v1/products
+POST {{inventoryUrl}}/api/v1/products
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -47,14 +49,14 @@ Content-Type: application/json
 }
 
 ### Check stock levels (onHand, reserved and available)
-GET {{baseUrl}}/api/v1/products/MUG-BLUE-01
+GET {{inventoryUrl}}/api/v1/products/MUG-BLUE-01
 Authorization: Bearer {{token}}
 
 ### List products whose SKU starts with a prefix
-GET {{baseUrl}}/api/v1/products?skuPrefix=MUG-&page=0&size=20
+GET {{inventoryUrl}}/api/v1/products?skuPrefix=MUG-&page=0&size=20
 Authorization: Bearer {{token}}
 
-### Place an order: stock is reserved and the order is CONFIRMED
+### Place an order: it is PENDING until the inventory service reserves the stock (then CONFIRMED)
 POST {{baseUrl}}/api/v1/orders
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -96,7 +98,7 @@ Idempotency-Key: {{idempotencyKey}}
   ]
 }
 
-### Ask for more than is available: the order is REJECTED and nothing is reserved
+### Ask for more than is available: the inventory rejects it, the order becomes REJECTED and nothing is reserved
 POST {{baseUrl}}/api/v1/orders
 Authorization: Bearer {{token}}
 Content-Type: application/json

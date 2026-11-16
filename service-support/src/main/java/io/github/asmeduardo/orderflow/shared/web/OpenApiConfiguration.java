@@ -6,6 +6,7 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,7 +16,7 @@ class OpenApiConfiguration {
     private static final String BEARER_JWT = "bearer-jwt";
 
     @Bean
-    OpenAPI orderflowOpenApi() {
+    OpenAPI orderflowOpenApi(@Value("${orderflow.api.title:OrderFlow API}") String title) {
         return new OpenAPI()
                 .components(new Components()
                         .addSecuritySchemes(
@@ -28,7 +29,7 @@ class OpenApiConfiguration {
                                                 "Access token with scope orderflow.read and/or orderflow.operate")))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_JWT))
                 .info(new Info()
-                        .title("OrderFlow API")
+                        .title(title)
                         .version("v1")
                         .description("""
                                 Order intake and stock reservation for multi-channel retailers. \

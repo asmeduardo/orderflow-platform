@@ -1,0 +1,18 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: inventory-service
+  config:
+    import: classpath:orderflow-defaults.yml
+  datasource:
+    url: jdbc:postgresql://${INVENTORY_POSTGRES_HOST:localhost}:${INVENTORY_POSTGRES_PORT:5433}/${INVENTORY_POSTGRES_DB:inventory}
+    username: ${INVENTORY_POSTGRES_USER:inventory}
+    password: ${INVENTORY_POSTGRES_PASSWORD:}
+  flyway:
+    schemas: inventory
+
+orderflow:
+  api:
+    title: OrderFlow Inventory API

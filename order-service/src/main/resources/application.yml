@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: order-service
+  config:
+    import: classpath:orderflow-defaults.yml
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:orderflow}
+    username: ${POSTGRES_USER:orderflow}
+    password: ${POSTGRES_PASSWORD:}
+  flyway:
+    # The inventory schema is listed only so that the migrations written before the extraction
+    # (V1 to V9) still run on a new database; V10 drops it. Flyway creates listed schemas only when
+    # it initialises a database, so the schema does not come back afterwards.
+    schemas: orders,inventory
+
+orderflow:
+  api:
+    title: OrderFlow Orders API
