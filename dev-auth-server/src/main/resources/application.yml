@@ -1,0 +1,33 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: dev-auth-server
+  config:
+    import: optional:file:.env[.properties]
+  security:
+    oauth2:
+      authorizationserver:
+        issuer: ${ORDERFLOW_ISSUER_URI:http://localhost:9000}
+        client:
+          # Machine-to-machine clients. Secrets have no default on purpose: start-up fails until
+          # they are set in .env. "{noop}" keeps them in memory as given; this server is dev-only.
+          reader:
+            registration:
+              client-id: orderflow-reader
+              client-secret: "{noop}${ORDERFLOW_READER_CLIENT_SECRET}"
+              client-authentication-methods: client_secret_basic
+              authorization-grant-types: client_credentials
+              scopes: orderflow.read
+            token:
+              access-token-time-to-live: 15m
+          operator:
+            registration:
+              client-id: orderflow-operator
+              client-secret: "{noop}${ORDERFLOW_OPERATOR_CLIENT_SECRET}"
+              client-authentication-methods: client_secret_basic
+              authorization-grant-types: client_credentials
+              scopes: orderflow.read,orderflow.operate
+            token:
+              access-token-time-to-live: 15m

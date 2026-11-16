@@ -20,6 +20,7 @@
 
   <modules>
     <module>orderflow-app</module>
+    <module>dev-auth-server</module>
   </modules>
 
   <properties>
