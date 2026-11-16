@@ -20,6 +20,8 @@
 
   <modules>
     <module>event-contracts</module>
+    <module>service-support</module>
+    <module>service-test-support</module>
     <module>orderflow-app</module>
     <module>dev-auth-server</module>
   </modules>
@@ -41,6 +43,16 @@
       <dependency>
         <groupId>io.github.asmeduardo</groupId>
         <artifactId>event-contracts</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.asmeduardo</groupId>
+        <artifactId>service-support</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.asmeduardo</groupId>
+        <artifactId>service-test-support</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
