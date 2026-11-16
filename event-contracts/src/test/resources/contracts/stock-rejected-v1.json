@@ -1,0 +1,13 @@
+{
+  "eventId": "0195f2a4-7d1e-7c3a-9a55-3f1d2c4b5a69",
+  "eventType": "StockRejected",
+  "eventVersion": 1,
+  "occurredAt": "2026-11-15T12:00:00.123456Z",
+  "aggregateId": "5b0c8f3e-2d1a-4c7b-9e6f-8a7d6c5b4a32",
+  "payload": {
+    "orderId": "5b0c8f3e-2d1a-4c7b-9e6f-8a7d6c5b4a32",
+    "shortages": [
+      { "sku": "LAMP-DESK-01", "reason": "INSUFFICIENT_STOCK", "requested": 2, "available": 1 }
+    ]
+  }
+}

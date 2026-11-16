@@ -19,6 +19,7 @@
   <description>Order intake and stock reservation platform for multi-channel retailers</description>
 
   <modules>
+    <module>event-contracts</module>
     <module>orderflow-app</module>
     <module>dev-auth-server</module>
   </modules>
@@ -36,6 +37,11 @@
         <groupId>org.springdoc</groupId>
         <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         <version>${springdoc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.asmeduardo</groupId>
+        <artifactId>event-contracts</artifactId>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>com.tngtech.archunit</groupId>
