@@ -23,6 +23,18 @@ public class EventReader {
         return json.readValue(value, ENVELOPE);
     }
 
+    /**
+     * Fails for an event whose type the consumer handles but in a version it does not know. Types the
+     * consumer does not handle at all are not an error: a topic can carry events for other readers.
+     */
+    public void requireSupportedVersion(EventEnvelope<?> envelope, EventType... handled) {
+        for (var type : handled) {
+            if (type.name().equals(envelope.eventType()) && type.version() != envelope.eventVersion()) {
+                throw new UnsupportedEventVersionException(envelope.eventType(), envelope.eventVersion());
+            }
+        }
+    }
+
     public <T> T payload(EventEnvelope<JsonNode> envelope, EventType type, Class<T> payloadType) {
         if (!envelope.is(type)) {
             throw new IllegalArgumentException(

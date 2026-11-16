@@ -28,6 +28,7 @@ class InventoryEventsListener {
     @KafkaListener(id = "orders-inventory-events", topics = Topics.INVENTORY_EVENTS, groupId = "orders")
     void on(String value) {
         var event = reader.envelope(value);
+        reader.requireSupportedVersion(event, EventTypes.STOCK_RESERVED, EventTypes.STOCK_REJECTED);
         if (event.is(EventTypes.STOCK_RESERVED)) {
             handler.stockReserved(
                     event.eventId(), reader.payload(event, EventTypes.STOCK_RESERVED, StockReservedV1.class));

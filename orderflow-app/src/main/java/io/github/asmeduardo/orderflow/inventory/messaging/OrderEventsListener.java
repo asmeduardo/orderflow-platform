@@ -28,6 +28,7 @@ class OrderEventsListener {
     @KafkaListener(id = "inventory-order-events", topics = Topics.ORDER_EVENTS, groupId = "inventory")
     void on(String value) {
         var event = reader.envelope(value);
+        reader.requireSupportedVersion(event, EventTypes.ORDER_PLACED, EventTypes.ORDER_CANCELLED);
         if (event.is(EventTypes.ORDER_PLACED)) {
             handler.orderPlaced(event.eventId(), reader.payload(event, EventTypes.ORDER_PLACED, OrderPlacedV1.class));
         } else if (event.is(EventTypes.ORDER_CANCELLED)) {

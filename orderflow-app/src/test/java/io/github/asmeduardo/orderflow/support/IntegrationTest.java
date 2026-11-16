@@ -19,6 +19,11 @@ import org.springframework.test.context.ContextConfiguration;
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import({PostgresTestConfiguration.class, KafkaTestConfiguration.class, DefaultTokenConfiguration.class})
+@Import({
+    PostgresTestConfiguration.class,
+    KafkaTestConfiguration.class,
+    DefaultTokenConfiguration.class,
+    FlakyListenerConfiguration.class
+})
 @ContextConfiguration(initializers = TestJwtKeys.class)
 public @interface IntegrationTest {}
