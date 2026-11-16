@@ -115,14 +115,14 @@ class GlobalProblemHandler extends ResponseEntityExceptionHandler {
                 "The request conflicts with the current state of the resource.");
     }
 
-    @ExceptionHandler
-    ProblemDetail unauthorized(AuthenticationException exception) {
+    @ExceptionHandler(AuthenticationException.class)
+    ProblemDetail unauthorized() {
         return Problems.of(
                 HttpStatus.UNAUTHORIZED, "unauthorized", "Unauthorized", "A valid bearer access token is required.");
     }
 
-    @ExceptionHandler
-    ProblemDetail forbidden(AccessDeniedException exception) {
+    @ExceptionHandler(AccessDeniedException.class)
+    ProblemDetail forbidden() {
         return Problems.of(
                 HttpStatus.FORBIDDEN,
                 "forbidden",

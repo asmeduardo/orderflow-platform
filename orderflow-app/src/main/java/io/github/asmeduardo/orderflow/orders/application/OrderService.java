@@ -96,7 +96,7 @@ public class OrderService {
                 .map(item -> new StockLine(item.getSku(), item.getQuantity()))
                 .toList();
         switch (stock.reserve(order.getId(), lines)) {
-            case ReservationOutcome.Reserved reserved -> order.confirm(clock.instant());
+            case ReservationOutcome.Reserved _ -> order.confirm(clock.instant());
             case ReservationOutcome.Rejected rejected -> order.reject(describe(rejected.shortages()), clock.instant());
         }
         return OrderView.of(order);
