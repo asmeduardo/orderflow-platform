@@ -10,6 +10,14 @@ spring:
   flyway:
     # Each module owns a schema; no table may reference another module's schema.
     schemas: orders,inventory
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Keys are fetched lazily from the JWKS endpoint, so the API starts even if the issuer is down.
+          issuer-uri: ${ORDERFLOW_ISSUER_URI:http://localhost:9000}
+          jwk-set-uri: ${ORDERFLOW_JWK_SET_URI:${ORDERFLOW_ISSUER_URI:http://localhost:9000}/oauth2/jwks}
+          audiences: orderflow-api
   jpa:
     open-in-view: false
     hibernate:

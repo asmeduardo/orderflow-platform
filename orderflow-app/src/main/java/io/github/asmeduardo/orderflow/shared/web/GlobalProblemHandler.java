@@ -18,6 +18,8 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.method.ParameterErrors;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -108,6 +110,21 @@ class GlobalProblemHandler extends ResponseEntityExceptionHandler {
                 "conflict",
                 "Conflicting state",
                 "The request conflicts with the current state of the resource.");
+    }
+
+    @ExceptionHandler
+    ProblemDetail unauthorized(AuthenticationException exception) {
+        return Problems.of(
+                HttpStatus.UNAUTHORIZED, "unauthorized", "Unauthorized", "A valid bearer access token is required.");
+    }
+
+    @ExceptionHandler
+    ProblemDetail forbidden(AccessDeniedException exception) {
+        return Problems.of(
+                HttpStatus.FORBIDDEN,
+                "forbidden",
+                "Forbidden",
+                "The access token does not grant the scope this operation requires.");
     }
 
     @ExceptionHandler
