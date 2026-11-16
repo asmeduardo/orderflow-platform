@@ -50,9 +50,17 @@ class OrderServiceTest {
     @Mock
     StockReservations stock;
 
+    @Mock
+    OrderEvents events;
+
     private OrderService service() {
         return new OrderService(
-                orders, keys, stock, TransactionOperations.withoutTransaction(), Clock.fixed(NOW, ZoneOffset.UTC));
+                orders,
+                keys,
+                stock,
+                events,
+                TransactionOperations.withoutTransaction(),
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test

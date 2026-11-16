@@ -33,6 +33,7 @@ public class OrderService {
     private final OrderRepository orders;
     private final IdempotencyKeyRepository keys;
     private final StockReservations stock;
+    private final OrderEvents events;
     private final TransactionOperations transactions;
     private final Clock clock;
 
@@ -40,11 +41,13 @@ public class OrderService {
             OrderRepository orders,
             IdempotencyKeyRepository keys,
             StockReservations stock,
+            OrderEvents events,
             TransactionOperations transactions,
             Clock clock) {
         this.orders = orders;
         this.keys = keys;
         this.stock = stock;
+        this.events = events;
         this.transactions = transactions;
         this.clock = clock;
     }
@@ -92,6 +95,7 @@ public class OrderService {
         var now = clock.instant();
         var order = orders.save(Order.place(command.channel(), currencyOf(command.currency()), command.lines(), now));
         keys.saveAndFlush(new IdempotencyKey(idempotencyKey, fingerprint, order.getId(), now));
+        events.placed(order);
         var lines = order.getItems().stream()
                 .map(item -> new StockLine(item.getSku(), item.getQuantity()))
                 .toList();
@@ -116,6 +120,7 @@ public class OrderService {
         var order = orders.findWithItemsById(id).orElseThrow(() -> new OrderNotFoundException(id));
         if (order.cancel(clock.instant())) {
             stock.release(order.getId());
+            events.cancelled(order);
         }
         return OrderView.of(order);
     }
