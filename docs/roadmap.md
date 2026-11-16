@@ -11,11 +11,11 @@
 
 ## Fase 2 — segurança e qualidade
 
-- [ ] integrar OAuth 2.0/OIDC;
-- [ ] definir permissões de leitura e operação;
-- [ ] adicionar testes de autorização;
-- [ ] aplicar testes de arquitetura;
-- [ ] configurar análise estática, auditoria de dependências e CI.
+- [x] integrar OAuth 2.0/OIDC ([ADR 0006](adr/0006-seguranca-oauth2-resource-server.md));
+- [x] definir permissões de leitura e operação;
+- [x] adicionar testes de autorização;
+- [x] aplicar testes de arquitetura;
+- [x] configurar análise estática, auditoria de dependências e CI.
 
 ## Fase 3 — eventos
 

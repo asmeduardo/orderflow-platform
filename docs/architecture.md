@@ -24,6 +24,8 @@ A fase 1 entrega um monólito modular ([ADR 0003](adr/0003-monolito-modular-com-
 - a criação de pedidos é idempotente por `Idempotency-Key` ([ADR 0005](adr/0005-idempotencia-na-criacao-de-pedidos.md));
 - valores monetários usam `BigDecimal` na escala da moeda, e datas são instantes UTC com precisão de microssegundos.
 
+Desde a fase 2, a API é um resource server OAuth 2.0: os escopos `orderflow.read` e `orderflow.operate` separam consulta e operação, a chave de idempotência é isolada por cliente e testes ArchUnit impedem dependências entre módulos fora de `inventory.api` ([ADR 0006](adr/0006-seguranca-oauth2-resource-server.md)). Em desenvolvimento, o módulo `dev-auth-server` emite os tokens.
+
 A comunicação por eventos e a extração do estoque estão previstas para a fase 3.
 
 ## Decisões de consistência

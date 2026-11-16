@@ -18,4 +18,4 @@ Canais de venda repetem requisições quando há timeout ou queda de conexão. S
 
 ## Consequências
 
-`OrderIdempotencyIT` comprova que 12 repetições simultâneas criam exatamente um pedido e uma reserva. As chaves não expiram enquanto o pedido existir; uma política de retenção poderá ser criada se o volume justificar. Nesta fase, as chaves são globais. Quando a API passar a identificar o cliente pelo token, as chaves deverão ser isoladas por cliente.
+`OrderIdempotencyIT` comprova que 12 repetições simultâneas criam exatamente um pedido e uma reserva. As chaves não expiram enquanto o pedido existir; uma política de retenção poderá ser criada se o volume justificar. Na fase 1, as chaves eram globais; desde a fase 2 elas são únicas por cliente autenticado ([ADR 0006](0006-seguranca-oauth2-resource-server.md)).

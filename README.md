@@ -1,8 +1,11 @@
 # OrderFlow Platform
 
+[![CI](https://github.com/asmeduardo/orderflow-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/asmeduardo/orderflow-platform/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/asmeduardo/orderflow-platform/actions/workflows/codeql.yml/badge.svg)](https://github.com/asmeduardo/orderflow-platform/actions/workflows/codeql.yml)
+
 Plataforma de pedidos e reserva de estoque para pequenos varejistas que vendem em mais de um canal e precisam evitar venda sem estoque, reservas duplicadas e pedidos presos após falhas de integração.
 
-> **Estado:** fase 1 (fundação) entregue: monólito modular com os módulos de pedidos e estoque, PostgreSQL, API REST documentada e testes de unidade e integração. Segurança (fase 2) e eventos (fase 3) são as próximas entregas; o restante do documento indica o que ainda está planejado.
+> **Estado:** fases 1 (fundação) e 2 (segurança e qualidade) entregues: monólito modular com pedidos e estoque, PostgreSQL, API REST documentada e protegida por OAuth 2.0/JWT com escopos, testes de unidade, integração e arquitetura, e CI com análise de código e de dependências. Eventos com Kafka (fase 3) são a próxima entrega; o restante do documento indica o que ainda está planejado.
 
 ## Problema
 
@@ -55,13 +58,13 @@ Em uso:
 - Spring MVC, Spring Data JPA/Hibernate e Bean Validation;
 - PostgreSQL 18 e Flyway com migrações SQL versionadas;
 - OpenAPI 3 e Swagger UI (springdoc-openapi);
-- JUnit 6 (Jupiter), Mockito, AssertJ e Testcontainers;
-- Maven (wrapper) e Docker Compose para o ambiente local.
+- Spring Security como resource server OAuth 2.0 com JWT e, em desenvolvimento, Spring Authorization Server ([ADR 0006](docs/adr/0006-seguranca-oauth2-resource-server.md));
+- JUnit 6 (Jupiter), Mockito, AssertJ, Testcontainers e ArchUnit;
+- Maven (wrapper), Spotless e Docker Compose para o ambiente local;
+- GitHub Actions (build e testes), CodeQL, dependency review e Dependabot.
 
 Planejada:
 
-- Spring Security com OAuth 2.0 e JWT (fase 2);
-- GitHub Actions para integração contínua (fase 2);
 - Apache Kafka (fase 3);
 - WireMock para integrações HTTP externas;
 - Kubernetes e Helm para orquestração;
@@ -88,12 +91,23 @@ Planejada:
 Pré-requisitos: JDK 25 e Docker.
 
 ```bash
-cp .env.example .env        # defina POSTGRES_PASSWORD (e POSTGRES_PORT, se a 5432 estiver ocupada)
-docker compose up -d        # PostgreSQL 18
-./mvnw -pl orderflow-app spring-boot:run   # API em http://localhost:8080
+cp .env.example .env                        # defina as senhas e os segredos dos clientes
+docker compose up -d                        # PostgreSQL 18
+./mvnw -pl dev-auth-server spring-boot:run  # servidor de autorização local em http://localhost:9000
+./mvnw -pl orderflow-app spring-boot:run    # API em http://localhost:8080 (em outro terminal)
 ```
 
-A aplicação lê o mesmo `.env` (ignorado pelo Git) que o Docker Compose; as migrações Flyway rodam na inicialização.
+Os serviços leem o mesmo `.env` (ignorado pelo Git) que o Docker Compose; as migrações Flyway rodam na inicialização. Se a porta 5432 estiver ocupada, ajuste `POSTGRES_PORT`.
+
+### Como obter um token
+
+O servidor de autorização local tem dois clientes `client_credentials`: `orderflow-reader` (escopo `orderflow.read`) e `orderflow-operator` (escopos `orderflow.read` e `orderflow.operate`). Os segredos são os definidos no `.env`.
+
+```bash
+curl -s -u "orderflow-operator:$ORDERFLOW_OPERATOR_CLIENT_SECRET"   -d grant_type=client_credentials -d "scope=orderflow.read orderflow.operate"   http://localhost:9000/oauth2/token
+```
+
+O campo `access_token` da resposta vale por 15 minutos e é enviado como `Authorization: Bearer <token>`. No Swagger UI, use o botão **Authorize** e cole o token.
 
 - Swagger UI: <http://localhost:8080/swagger-ui/index.html>
 - Contrato OpenAPI: <http://localhost:8080/v3/api-docs>
@@ -105,7 +119,7 @@ A aplicação lê o mesmo `.env` (ignorado pelo Git) que o Docker Compose; as mi
 ./mvnw verify
 ```
 
-Executa os testes unitários (`*Test`, Surefire) e os de integração (`*IT`, Failsafe). Os testes de integração sobem um PostgreSQL real com Testcontainers e, por isso, exigem o Docker em execução. Entre eles estão os testes de concorrência da reserva de estoque e da chave de idempotência.
+É o gate local e o mesmo comando do CI: verifica a formatação (Spotless), executa os testes unitários e de arquitetura (`*Test`, Surefire) e os de integração (`*IT`, Failsafe). Os testes de integração sobem um PostgreSQL real com Testcontainers e, por isso, exigem o Docker em execução. Entre eles estão os testes de concorrência da reserva de estoque e da chave de idempotência e os de autorização, que usam tokens assinados por uma chave gerada no próprio teste, sem provedor de identidade. Para corrigir a formatação, use `./mvnw spotless:apply`.
 
 ## Roadmap
 
@@ -113,7 +127,7 @@ O desenvolvimento será incremental. Cada fase deverá terminar com código exec
 
 1. domínio de pedidos e estoque em um monólito modular (entregue);
 2. persistência PostgreSQL, migrações e API REST (entregue);
-3. autenticação, autorização e auditoria;
+3. autenticação, autorização e auditoria (autenticação e autorização entregues; auditoria planejada);
 4. extração do processamento assíncrono com Kafka e outbox;
 5. idempotência, retry, DLQ e testes de falha;
 6. observabilidade;
@@ -132,6 +146,7 @@ O painel React será a demonstração principal do fluxo de negócio. Swagger UI
 - [ADR 0003 — módulos com API pública e schema próprio](docs/adr/0003-monolito-modular-com-schema-por-modulo.md)
 - [ADR 0004 — reserva de estoque concorrente](docs/adr/0004-reserva-de-estoque-concorrente.md)
 - [ADR 0005 — idempotência na criação de pedidos](docs/adr/0005-idempotencia-na-criacao-de-pedidos.md)
+- [ADR 0006 — resource server OAuth 2.0 com escopos](docs/adr/0006-seguranca-oauth2-resource-server.md)
 - [Como contribuir](CONTRIBUTING.md)
 - [Política de segurança](SECURITY.md)
 

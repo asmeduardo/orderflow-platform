@@ -3,11 +3,30 @@
 # Start the application first (see README). Run the requests from top to bottom.
 
 @baseUrl = http://localhost:8080
+@authUrl = http://localhost:9000
+# Client secrets: the values you chose in .env. Never commit real values.
+@operatorSecret = change-me
+@readerSecret = change-me
+# Paste the access_token returned by the token requests below.
+@token = paste-an-access-token-here
 # Use a fresh value for every new order attempt; repeat it only to retry the same order.
 @idempotencyKey = 0f8b6c52-3f0e-4a8e-9d43-6a1e2b7c9d10
 
+### Get an operator token (scopes orderflow.read and orderflow.operate)
+POST {{authUrl}}/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&scope=orderflow.read%20orderflow.operate&client_id=orderflow-operator&client_secret={{operatorSecret}}
+
+### Get a read-only token: writes with it answer 403
+POST {{authUrl}}/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&scope=orderflow.read&client_id=orderflow-reader&client_secret={{readerSecret}}
+
 ### Register a product with 5 units on hand
 POST {{baseUrl}}/api/v1/products
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -18,6 +37,7 @@ Content-Type: application/json
 
 ### Register a product that is almost sold out
 POST {{baseUrl}}/api/v1/products
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -28,12 +48,15 @@ Content-Type: application/json
 
 ### Check stock levels (onHand, reserved and available)
 GET {{baseUrl}}/api/v1/products/MUG-BLUE-01
+Authorization: Bearer {{token}}
 
 ### List products whose SKU starts with a prefix
 GET {{baseUrl}}/api/v1/products?skuPrefix=MUG-&page=0&size=20
+Authorization: Bearer {{token}}
 
 ### Place an order: stock is reserved and the order is CONFIRMED
 POST {{baseUrl}}/api/v1/orders
+Authorization: Bearer {{token}}
 Content-Type: application/json
 Idempotency-Key: {{idempotencyKey}}
 
@@ -47,6 +70,7 @@ Idempotency-Key: {{idempotencyKey}}
 
 ### Retry the same request: same order, header Idempotent-Replayed: true, no extra reservation
 POST {{baseUrl}}/api/v1/orders
+Authorization: Bearer {{token}}
 Content-Type: application/json
 Idempotency-Key: {{idempotencyKey}}
 
@@ -60,6 +84,7 @@ Idempotency-Key: {{idempotencyKey}}
 
 ### Reuse the key with a different payload: 422 idempotency-key-reused
 POST {{baseUrl}}/api/v1/orders
+Authorization: Bearer {{token}}
 Content-Type: application/json
 Idempotency-Key: {{idempotencyKey}}
 
@@ -73,6 +98,7 @@ Idempotency-Key: {{idempotencyKey}}
 
 ### Ask for more than is available: the order is REJECTED and nothing is reserved
 POST {{baseUrl}}/api/v1/orders
+Authorization: Bearer {{token}}
 Content-Type: application/json
 Idempotency-Key: 7d2e9a41-5b6c-4f3d-8e1a-2c9b7a6d5e40
 
@@ -87,6 +113,7 @@ Idempotency-Key: 7d2e9a41-5b6c-4f3d-8e1a-2c9b7a6d5e40
 
 ### Invalid request: every invalid field is reported in one problem detail
 POST {{baseUrl}}/api/v1/orders
+Authorization: Bearer {{token}}
 Content-Type: application/json
 Idempotency-Key: 1b4c7e2a-9d3f-4a6b-8c5e-0f2d1a3b4c59
 
@@ -100,9 +127,12 @@ Idempotency-Key: 1b4c7e2a-9d3f-4a6b-8c5e-0f2d1a3b4c59
 
 ### List the most recent orders, optionally by status and channel
 GET {{baseUrl}}/api/v1/orders?status=CONFIRMED&page=0&size=20
+Authorization: Bearer {{token}}
 
 ### Get one order (replace the id with one returned above)
 GET {{baseUrl}}/api/v1/orders/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{token}}
 
 ### Cancel an order and release its stock (replace the id)
 POST {{baseUrl}}/api/v1/orders/00000000-0000-0000-0000-000000000000/cancel
+Authorization: Bearer {{token}}
