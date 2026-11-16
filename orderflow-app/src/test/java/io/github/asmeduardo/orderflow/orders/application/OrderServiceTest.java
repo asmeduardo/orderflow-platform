@@ -36,7 +36,8 @@ import org.springframework.transaction.support.TransactionOperations;
 class OrderServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-11-15T12:00:00Z");
-    private static final String KEY = "c2f1e9a4-3b7d-4d9e-8f10-2a6b5c4d3e21";
+    private static final IdempotencyKey.Id KEY =
+            new IdempotencyKey.Id("web-store-integration", "c2f1e9a4-3b7d-4d9e-8f10-2a6b5c4d3e21");
     private static final PlaceOrderCommand COMMAND =
             new PlaceOrderCommand("WEB_STORE", "BRL", List.of(new OrderLine("MUG", 1, new BigDecimal("10.00"))));
 

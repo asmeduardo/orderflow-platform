@@ -50,10 +50,10 @@ public class OrderService {
     }
 
     /**
-     * Places an order at most once per idempotency key. A retry with the same payload gets the
-     * original order back; the same key with a different payload is refused.
+     * Places an order at most once per client and idempotency key. A retry with the same payload
+     * gets the original order back; the same key with a different payload is refused.
      */
-    public PlacementResult place(String idempotencyKey, PlaceOrderCommand command) {
+    public PlacementResult place(IdempotencyKey.Id idempotencyKey, PlaceOrderCommand command) {
         var fingerprint = OrderRequestFingerprint.of(command);
         var previous = transactions.execute(status -> replay(idempotencyKey, fingerprint));
         if (previous.isPresent()) {
@@ -71,7 +71,7 @@ public class OrderService {
         }
     }
 
-    private Optional<PlacementResult> replay(String idempotencyKey, String fingerprint) {
+    private Optional<PlacementResult> replay(IdempotencyKey.Id idempotencyKey, String fingerprint) {
         return keys.findById(idempotencyKey).map(previous -> {
             if (!previous.matches(fingerprint)) {
                 throw new IdempotencyKeyReusedException();
@@ -88,7 +88,7 @@ public class OrderService {
      * reserving stock it would have to give back. The order is confirmed when every line is reserved
      * and rejected, with the shortages as reason, otherwise.
      */
-    private OrderView placeNew(String idempotencyKey, String fingerprint, PlaceOrderCommand command) {
+    private OrderView placeNew(IdempotencyKey.Id idempotencyKey, String fingerprint, PlaceOrderCommand command) {
         var now = clock.instant();
         var order = orders.save(Order.place(command.channel(), currencyOf(command.currency()), command.lines(), now));
         keys.saveAndFlush(new IdempotencyKey(idempotencyKey, fingerprint, order.getId(), now));

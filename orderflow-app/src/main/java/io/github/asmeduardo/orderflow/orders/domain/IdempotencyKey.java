@@ -1,8 +1,9 @@
 package io.github.asmeduardo.orderflow.orders.domain;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
@@ -13,17 +14,29 @@ import java.util.UUID;
 import org.springframework.data.domain.Persistable;
 
 /**
- * Remembers which order a client request created. The primary key makes a second insert with the
- * same key wait for, and then fail after, the first one, which is how concurrent retries are
- * detected.
+ * Remembers which order a client request created. Keys belong to the client that sent them, so two
+ * clients may pick the same key without seeing each other's orders. The primary key makes a second
+ * insert of the same client and key wait for, and then fail after, the first one, which is how
+ * concurrent retries are detected.
  */
 @Entity
 @Table(name = "idempotency_key", schema = "orders")
-public class IdempotencyKey implements Persistable<String> {
+public class IdempotencyKey implements Persistable<IdempotencyKey.Id> {
 
-    @Id
-    @Column(name = "idempotency_key", length = 100)
-    private String key;
+    /** A key is unique per client, identified by the subject of its access token. */
+    @Embeddable
+    public record Id(
+            @Column(name = "client_id", length = 100) String clientId,
+            @Column(name = "idempotency_key", length = 100) String key) {
+
+        public Id {
+            Objects.requireNonNull(clientId, "clientId");
+            Objects.requireNonNull(key, "key");
+        }
+    }
+
+    @EmbeddedId
+    private Id id;
 
     @Column(name = "request_fingerprint", nullable = false, updatable = false, length = 64)
     private String requestFingerprint;
@@ -39,8 +52,8 @@ public class IdempotencyKey implements Persistable<String> {
 
     protected IdempotencyKey() {}
 
-    public IdempotencyKey(String key, String requestFingerprint, UUID orderId, Instant now) {
-        this.key = Objects.requireNonNull(key, "key");
+    public IdempotencyKey(Id id, String requestFingerprint, UUID orderId, Instant now) {
+        this.id = Objects.requireNonNull(id, "id");
         this.requestFingerprint = Objects.requireNonNull(requestFingerprint, "requestFingerprint");
         this.orderId = Objects.requireNonNull(orderId, "orderId");
         this.createdAt = Objects.requireNonNull(now, "now");
@@ -55,8 +68,8 @@ public class IdempotencyKey implements Persistable<String> {
     }
 
     @Override
-    public String getId() {
-        return key;
+    public Id getId() {
+        return id;
     }
 
     /** The key is assigned by the client, so Spring Data cannot infer novelty from a null id. */

@@ -1,6 +1,7 @@
 package io.github.asmeduardo.orderflow.orders.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 
 import com.jayway.jsonpath.JsonPath;
 import io.github.asmeduardo.orderflow.inventory.application.ProductService;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
@@ -47,6 +49,22 @@ class OrderIdempotencyIT {
         assertThat(idOf(retry)).isEqualTo(idOf(first));
         assertThat(retry.getResponse().getHeader("Location")).isEqualTo(first.getResponse().getHeader("Location"));
         assertThat(products.get("IDEM-A").reservedQuantity()).isEqualTo(3);
+    }
+
+    @Test
+    void keysOfDifferentClientsNeverCollide() {
+        products.register("IDEM-TENANT", "Item", 10);
+        var sharedKey = "order-0001";
+        var body = order("IDEM-TENANT", 1);
+
+        var fromWebStore = placeAs("web-store-integration", sharedKey, body);
+        var fromMarketplace = placeAs("marketplace-integration", sharedKey, body);
+
+        assertThat(fromWebStore).hasStatus(HttpStatus.CREATED);
+        assertThat(fromMarketplace).hasStatus(HttpStatus.CREATED);
+        assertThat(fromMarketplace.getResponse().getHeader("Idempotent-Replayed")).isNull();
+        assertThat(idOf(fromMarketplace)).isNotEqualTo(idOf(fromWebStore));
+        assertThat(products.get("IDEM-TENANT").reservedQuantity()).isEqualTo(2);
     }
 
     @Test
@@ -119,6 +137,17 @@ class OrderIdempotencyIT {
     private MvcTestResult place(String key, String body) {
         return mvc.post()
                 .uri("/api/v1/orders")
+                .header("Idempotency-Key", key)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body)
+                .exchange();
+    }
+
+    private MvcTestResult placeAs(String clientId, String key, String body) {
+        return mvc.post()
+                .uri("/api/v1/orders")
+                .with(jwt().jwt(token -> token.subject(clientId))
+                        .authorities(new SimpleGrantedAuthority("SCOPE_orderflow.operate")))
                 .header("Idempotency-Key", key)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body)

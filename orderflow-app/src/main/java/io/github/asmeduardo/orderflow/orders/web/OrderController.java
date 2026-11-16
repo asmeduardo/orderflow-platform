@@ -3,6 +3,7 @@ package io.github.asmeduardo.orderflow.orders.web;
 import io.github.asmeduardo.orderflow.orders.application.OrderService;
 import io.github.asmeduardo.orderflow.orders.application.OrderSummary;
 import io.github.asmeduardo.orderflow.orders.application.OrderView;
+import io.github.asmeduardo.orderflow.orders.domain.IdempotencyKey;
 import io.github.asmeduardo.orderflow.orders.domain.OrderStatus;
 import io.github.asmeduardo.orderflow.shared.web.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,6 +18,8 @@ import jakarta.validation.constraints.Pattern;
 import java.net.URI;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -57,12 +60,14 @@ public class OrderController {
             description = "Idempotency key already used for a different payload",
             content = @Content(mediaType = PROBLEM_JSON))
     public ResponseEntity<OrderView> place(
-            @Parameter(description = "Client-generated key, unique per order attempt (a UUID is a good choice)")
+            @Parameter(description = "Client-generated key, unique per order attempt for the calling client (a UUID is a good choice)")
                     @RequestHeader(IDEMPOTENCY_KEY)
                     @Pattern(regexp = "[A-Za-z0-9._:-]{8,100}", message = "must be 8-100 characters: letters, digits or . _ : -")
                     String idempotencyKey,
-            @Valid @RequestBody PlaceOrderRequest request) {
-        var result = orders.place(idempotencyKey, request.toCommand());
+            @Valid @RequestBody PlaceOrderRequest request,
+            @AuthenticationPrincipal Jwt client) {
+        var key = new IdempotencyKey.Id(client.getSubject(), idempotencyKey);
+        var result = orders.place(key, request.toCommand());
         var response = ResponseEntity.created(URI.create("/api/v1/orders/" + result.order().id()));
         if (result.replayed()) {
             response.header(IDEMPOTENT_REPLAYED, "true");
